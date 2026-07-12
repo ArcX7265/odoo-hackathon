@@ -6,8 +6,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "vehicles")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -32,5 +31,5 @@ public class Vehicle {
     @Column(name = "acquisition_cost")
     private BigDecimal acquisitionCost;
 
-    private String status; // 'Available', 'On Trip', 'In Shop', 'Retired'
+    private String status = "Available"; // 'Available', 'On Trip', 'In Shop', 'Retired'
 }

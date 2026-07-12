@@ -6,8 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "drivers")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -34,5 +33,5 @@ public class Driver {
     @Column(name = "safety_score")
     private Integer safetyScore;
 
-    private String status; // 'Available', 'On Trip', 'Off Duty', 'Suspended'
+    private String status = "Available"; // 'Available', 'On Trip', 'Off Duty', 'Suspended'
 }
