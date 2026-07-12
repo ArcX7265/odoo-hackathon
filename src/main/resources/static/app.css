@@ -419,6 +419,7 @@ body {
     font-family: inherit;
     outline: none;
     transition: var(--transition-fast);
+    width: 100%;
 }
 
 .form-input:focus {
