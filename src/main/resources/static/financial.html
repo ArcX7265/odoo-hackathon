@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TransitOps - Financial Analytics</title>
+    <script>
+        // Force redirect to the Spring Boot server on port 8080 if opened via file:// or another port
+        if (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8080')) {
+            window.location.href = 'http://localhost:8080/financial.html';
+        }
+    </script>
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
