@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface DriverRepository extends JpaRepository<Driver, Integer> {
     Optional<Driver> findByLicenseNumber(String licenseNumber);
 
+    List<Driver> findByStatus(String status);
+
     @Query("SELECT d FROM Driver d WHERE LOWER(d.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(d.licenseNumber) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Driver> searchDrivers(@Param("query") String query);
 }
