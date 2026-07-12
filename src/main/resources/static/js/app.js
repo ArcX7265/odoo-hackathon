@@ -676,29 +676,7 @@ const App = {
                 }
             });
         }
-        
-        const btnExportPdf = document.getElementById("btn-export-pdf");
-        if (btnExportPdf) {
-            btnExportPdf.addEventListener("click", () => {
-                const element = document.getElementById("view-analytics");
-                const opt = {
-                    margin:       0.5,
-                    filename:     'financial_analytics.pdf',
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true },
-                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-                };
-                
-                // Hide buttons during export
-                const buttons = document.querySelectorAll('#btn-export-pdf, #btn-export-roi');
-                buttons.forEach(b => b.style.display = 'none');
-                
-                html2pdf().set(opt).from(element).save().then(() => {
-                    // Restore buttons
-                    buttons.forEach(b => b.style.display = 'inline-block');
-                });
-            });
-        }
+
 
         // Maintenance Form
         const maintForm = document.getElementById("maintenance-form");
