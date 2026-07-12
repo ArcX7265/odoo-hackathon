@@ -389,15 +389,19 @@
                     </div>
 
                     <div class="panel">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 style="margin: 0;">Vehicle Financial Performance (ROI & Operational Outlays)</h2>
-                            <div style="display: flex; gap: 1rem;">
-                                <button id="btn-export-pdf" class="btn btn-secondary" style="margin: 0;">Export to PDF</button>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <div>
+                                <h2 style="margin-top: 0;">Vehicle Financial Performance (ROI & Operational Outlays)</h2>
+                                <p class="panel-desc">Calculated Vehicle ROI based on: Revenue (Completed trips * $3.00/mile) vs Operational Cost (Maintenance + Fuel) against vehicle Acquisition Cost.</p>
+                            </div>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
                                 <button id="btn-export-roi" class="btn btn-primary" style="margin: 0;">Export ROI CSV</button>
+                                <button id="btn-export-pdf" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; background: var(--accent-blue);">
+                                    📄 Export PDF Report
+                                </button>
                             </div>
                         </div>
-                        <p class="panel-desc">Calculated Vehicle ROI based on: Revenue (Completed trips * $3.00/mile) vs Operational Cost (Maintenance + Fuel) against vehicle Acquisition Cost.</p>
-                        
+
                         <!-- Financial Graph Container -->
                         <div class="chart-container" style="width: 100%; max-width: 900px; margin: 2rem auto; padding: 1rem; background-color: var(--surface-color); border-radius: 8px; border: 1px solid var(--border-color);">
                             <canvas id="roiChart"></canvas>
@@ -412,6 +416,11 @@
             </div>
         </main>
     </div>
+    
+    <!-- jsPDF and AutoTable plugins for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <script type="module" src="/js/app.js"></script>
 </body>
 </html>

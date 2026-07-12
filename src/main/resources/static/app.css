@@ -806,3 +806,21 @@ textarea.form-input {
     height: 100%;
     border-radius: 3px;
 }
+
+.to-badge-warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+
+@keyframes pulse-red-anim {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.pulse-red {
+  animation: pulse-red-anim 2s infinite;
+  border: 1px solid var(--accent-red) !important;
+}
+.critical-alert-text {
+  color: var(--accent-red);
+  font-weight: 700;
+  margin-top: 10px;
+  text-align: center;
+}

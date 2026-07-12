@@ -473,9 +473,16 @@ const App = {
                 // ROI Bar Color
                 const barColor = isPositive ? "var(--accent-green)" : "var(--accent-red)";
                 const barWidth = Math.max(0, Math.min(100, Math.abs(roiVal)));
+                // Feature 5: Real-Time ROI Alerts
+                let pulseClass = "";
+                let warningText = "";
+                if (!isPositive) {
+                    pulseClass = "pulse-red";
+                    warningText = `<div class="critical-alert-text">⚠️ CRITICAL: Asset Operating at a Loss</div>`;
+                }
 
                 card.innerHTML = `
-                    <div class="analytics-card-header">
+                    <div class="analytics-card-header ${pulseClass}">
                         <div class="vehicle-info">
                             <h3>${item.registrationNumber}</h3>
                             <span>${item.model} • ${item.type}</span>
@@ -509,9 +516,13 @@ const App = {
                     <div class="roi-bar-container">
                         <div class="roi-bar" style="width: ${barWidth}%; background-color: ${barColor};"></div>
                     </div>
+                    ${warningText}
                 `;
                 grid.appendChild(card);
             });
+            
+            // Save data for PDF export (Feature 4)
+            App.state.lastRoiData = roiList;
 
             // --- Render Chart ---
             const ctx = document.getElementById('roiChart');
@@ -844,6 +855,83 @@ const App = {
                 tabContentFuel.classList.add("hidden");
             });
         }
+        
+        // PDF Export Button (Feature 4)
+        const btnExportPdf = document.getElementById("btn-export-pdf");
+        if (btnExportPdf) {
+            btnExportPdf.addEventListener("click", () => {
+                App.generatePDF();
+            });
+        }
+    },
+
+    // Feature 4: Generate PDF
+    generatePDF: () => {
+        if (!window.jspdf) {
+            alert("PDF library not loaded yet.");
+            return;
+        }
+        
+        const data = App.state.lastRoiData || [];
+        if (data.length === 0) {
+            alert("No data available to export.");
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Title
+        doc.setFontSize(18);
+        doc.text("TransitOps Financial ROI Report", 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+        
+        // Prepare table data
+        const tableColumn = ["Registration", "Model", "Type", "Revenue", "Ops Cost", "ROI %"];
+        const tableRows = [];
+
+        data.forEach(item => {
+            const rowData = [
+                item.registrationNumber,
+                item.model || "N/A",
+                item.type,
+                `$${item.revenue.toFixed(2)}`,
+                `$${item.totalOperationalCost.toFixed(2)}`,
+                `${(item.roi || 0).toFixed(2)}%`
+            ];
+            tableRows.push(rowData);
+        });
+
+        doc.autoTable({
+            startY: 40,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'striped',
+            headStyles: { fillColor: [59, 130, 246] }, // Tailwind blue-500
+            didParseCell: function(data) {
+                // Highlight negative ROI rows
+                if (data.section === 'body' && data.column.index === 5) {
+                    const roiValue = parseFloat(data.cell.raw);
+                    if (roiValue < 0) {
+                        data.cell.styles.textColor = [220, 38, 38]; // Tailwind red-600
+                        data.cell.styles.fontStyle = 'bold';
+                    } else {
+                        data.cell.styles.textColor = [22, 163, 74]; // Tailwind green-600
+                    }
+                }
+            }
+        });
+        
+        // Summary stats
+        let totalRev = 0, totalOps = 0;
+        data.forEach(item => { totalRev += item.revenue; totalOps += item.totalOperationalCost; });
+        const finalY = doc.lastAutoTable.finalY || 40;
+        doc.text(`Total Fleet Revenue: $${totalRev.toFixed(2)}`, 14, finalY + 10);
+        doc.text(`Total Fleet Operational Cost: $${totalOps.toFixed(2)}`, 14, finalY + 18);
+
+        doc.save("TransitOps_Financial_Report.pdf");
     }
 };
 
