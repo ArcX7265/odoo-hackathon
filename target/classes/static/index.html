@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitOps - Fleet Operations</title>
+    <title>TransitOps - Ops & Analytics</title>
     <script>
         // Force redirect to the Spring Boot server on port 8080 if opened via file:// or another port
         if (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8080')) {
-            window.location.href = 'http://localhost:8080/fleet.html';
+            window.location.href = 'http://localhost:8080/index.html';
         }
     </script>
     <link rel="stylesheet" href="app.css">
@@ -24,7 +24,7 @@
                     <span class="logo-icon">⛟</span>
                     <span class="logo-text">Transit<span class="highlight">Ops</span></span>
                 </div>
-                <div class="tagline">Fleet Operations</div>
+                <div class="tagline">Financial Analytics</div>
             </div>
             
             <nav class="nav-menu">
@@ -36,6 +36,9 @@
                 </button>
                 <button class="nav-item" data-view="ledgers">
                     <span class="nav-icon">💵</span> Fuel & Expenses
+                </button>
+                <button class="nav-item" data-view="analytics">
+                    <span class="nav-icon">📈</span> Analytics Reports
                 </button>
             </nav>
 
@@ -58,7 +61,7 @@
 
                 <!-- User Info & Logout -->
                 <div class="role-switcher-container" style="display: flex; align-items: center; gap: 1rem;">
-                    <span style="color: var(--text-muted);">Fleet Manager</span>
+                    <span style="color: var(--text-muted);">Financial Analyst</span>
                     <form action="/logout" method="POST" style="margin: 0;">
                         <button type="submit" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Logout</button>
                     </form>
