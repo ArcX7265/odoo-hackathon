@@ -13,7 +13,10 @@ export const FleetView = {
                         </h1>
                         <p class="to-subtitle">Track and manage vehicle statuses, capacities, and costs across the transport grid.</p>
                     </div>
-                    <div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button id="btn-export-fleet-csv" class="to-btn to-btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+                            📥 Export CSV
+                        </button>
                         ${isManager ? `
                             <button id="btn-add-vehicle" class="to-btn to-btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -159,8 +162,9 @@ export const FleetView = {
                 if (!response.ok) {
                     throw new Error('Failed to fetch vehicles');
                 }
-
                 const vehicles = await response.json();
+                FleetView.state = FleetView.state || {};
+                FleetView.state.vehicles = vehicles;
                 
                 if (vehicles.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="${isManager ? 8 : 7}" style="text-align: center; color: #9ca3af;">No vehicles found</td></tr>`;
@@ -253,6 +257,45 @@ export const FleetView = {
             searchInput.value = '';
             loadVehicles();
         });
+
+        // Export CSV logic
+        const exportFleetBtn = container.querySelector('#btn-export-fleet-csv');
+        if (exportFleetBtn) {
+            exportFleetBtn.addEventListener('click', () => {
+                const vehiclesList = (FleetView.state && FleetView.state.vehicles) || [];
+                if (vehiclesList.length === 0) {
+                    showToast('No vehicles available to export', 'warning');
+                    return;
+                }
+
+                const headers = ['Registration Number', 'Model', 'Type', 'Max Load Capacity (kg)', 'Odometer (km)', 'Acquisition Cost (USD)', 'Status'];
+                const rows = vehiclesList.map(v => [
+                    `"${v.registrationNumber}"`,
+                    `"${v.model || 'N/A'}"`,
+                    `"${v.type}"`,
+                    v.maxLoadCapacity || 0,
+                    v.odometer || 0,
+                    v.acquisitionCost || 0,
+                    `"${v.status}"`
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(r => r.join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `TransitOps_Fleet_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('Fleet export downloaded successfully', 'success');
+            });
+        }
 
         // Form submission and validation
         form.addEventListener('submit', async (e) => {

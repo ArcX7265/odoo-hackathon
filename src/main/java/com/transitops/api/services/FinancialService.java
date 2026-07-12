@@ -19,21 +19,41 @@ public class FinancialService {
     private final FuelLogRepository fuelLogRepository;
     private final ExpenseRepository expenseRepository;
     private final TripRepository tripRepository;
+    private final DriverRepository driverRepository;
 
     public FinancialService(VehicleRepository vehicleRepository,
                             MaintenanceLogRepository maintenanceLogRepository,
                             FuelLogRepository fuelLogRepository,
                             ExpenseRepository expenseRepository,
-                            TripRepository tripRepository) {
+                            TripRepository tripRepository,
+                            DriverRepository driverRepository) {
         this.vehicleRepository = vehicleRepository;
         this.maintenanceLogRepository = maintenanceLogRepository;
         this.fuelLogRepository = fuelLogRepository;
         this.expenseRepository = expenseRepository;
         this.tripRepository = tripRepository;
+        this.driverRepository = driverRepository;
     }
 
     public Map<String, Object> getKpiSummary() {
+        return getKpiSummary(null, null);
+    }
+
+    public Map<String, Object> getKpiSummary(String vehicleType, String vehicleStatus) {
         List<Vehicle> vehicles = vehicleRepository.findAll();
+
+        if (vehicleType != null && !vehicleType.isEmpty() && !"All".equalsIgnoreCase(vehicleType)) {
+            vehicles = vehicles.stream()
+                    .filter(v -> vehicleType.equalsIgnoreCase(v.getType()))
+                    .toList();
+        }
+
+        if (vehicleStatus != null && !vehicleStatus.isEmpty() && !"All".equalsIgnoreCase(vehicleStatus)) {
+            vehicles = vehicles.stream()
+                    .filter(v -> vehicleStatus.equalsIgnoreCase(v.getStatus()))
+                    .toList();
+        }
+
         long activeVehicles = vehicles.stream().filter(v -> !"Retired".equalsIgnoreCase(v.getStatus())).count();
         long availableVehicles = vehicles.stream().filter(v -> "Available".equalsIgnoreCase(v.getStatus())).count();
         long inMaintenance = vehicles.stream().filter(v -> "In Shop".equalsIgnoreCase(v.getStatus())).count();
@@ -43,9 +63,17 @@ public class FinancialService {
                 .filter(t -> "Dispatched".equalsIgnoreCase(t.getStatus()))
                 .count();
 
+        long pendingTrips = tripRepository.findAll().stream()
+                .filter(t -> "Draft".equalsIgnoreCase(t.getStatus()))
+                .count();
+
+        long driversOnDuty = driverRepository.findAll().stream()
+                .filter(d -> "Available".equalsIgnoreCase(d.getStatus()) || "On Trip".equalsIgnoreCase(d.getStatus()))
+                .count();
+
         double fleetUtilization = activeVehicles == 0 ? 0.0 : ((double) onTrip / activeVehicles) * 100.0;
         // round to 1 decimal place
-        fleetUtilization = BigDecimal.valueOf(fleetUtilization).setScale(1, RoundingMode.HALF_UP).doubleValue();
+        fleetUtilization = java.math.BigDecimal.valueOf(fleetUtilization).setScale(1, java.math.RoundingMode.HALF_UP).doubleValue();
 
         Map<String, Object> kpis = new HashMap<>();
         kpis.put("activeVehicles", activeVehicles);
@@ -53,6 +81,8 @@ public class FinancialService {
         kpis.put("vehiclesInMaintenance", inMaintenance);
         kpis.put("activeTrips", activeTrips);
         kpis.put("fleetUtilization", fleetUtilization);
+        kpis.put("pendingTrips", pendingTrips);
+        kpis.put("driversOnDuty", driversOnDuty);
 
         return kpis;
     }

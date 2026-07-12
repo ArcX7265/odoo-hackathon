@@ -61,6 +61,29 @@ const App = {
             App.loadVehiclesDropdowns();
         }
 
+        // Dashboard Filters
+        const refreshBtn = document.getElementById("btn-refresh-dashboard");
+        const filterType = document.getElementById("filter-veh-type");
+        const filterStatus = document.getElementById("filter-veh-status");
+        
+        const triggerRefresh = () => {
+            const type = filterType ? filterType.value : 'All';
+            const status = filterStatus ? filterStatus.value : 'All';
+            App.loadKpis(type, status);
+        };
+        
+        if (refreshBtn) refreshBtn.addEventListener("click", triggerRefresh);
+        if (filterType) filterType.addEventListener("change", triggerRefresh);
+        if (filterStatus) filterStatus.addEventListener("change", triggerRefresh);
+
+        // ROI CSV Export
+        const exportRoiBtn = document.getElementById("btn-export-roi-csv");
+        if (exportRoiBtn) {
+            exportRoiBtn.addEventListener("click", () => {
+                App.exportRoiToCsv(App.state.roiList || []);
+            });
+        }
+
         // Load default dashboard
         App.switchView("dashboard");
     },
@@ -95,7 +118,11 @@ const App = {
 
         // Load specific view data / render components
         if (viewId === "dashboard" && document.getElementById("kpi-active-vehicles")) {
-            App.loadKpis();
+            const filterType = document.getElementById("filter-veh-type");
+            const filterStatus = document.getElementById("filter-veh-status");
+            const type = filterType ? filterType.value : 'All';
+            const status = filterStatus ? filterStatus.value : 'All';
+            App.loadKpis(type, status);
         } else if (viewId === "maintenance" && document.getElementById("maintenance-ledger-body")) {
             App.loadMaintenanceLedger();
         } else if (viewId === "ledgers" && document.getElementById("fuel-ledger-body")) {
@@ -166,9 +193,17 @@ const App = {
     },
 
     // Load Dashboard KPIs
-    loadKpis: async () => {
+    loadKpis: async (type = 'All', status = 'All') => {
         try {
-            const res = await fetch("/api/analytics/kpi-summary");
+            let url = "/api/analytics/kpi-summary";
+            const params = [];
+            if (type && type !== 'All') params.push(`vehicleType=${encodeURIComponent(type)}`);
+            if (status && status !== 'All') params.push(`vehicleStatus=${encodeURIComponent(status)}`);
+            if (params.length > 0) {
+                url += `?${params.join('&')}`;
+            }
+
+            const res = await fetch(url);
             if (!res.ok) throw new Error("Failed to load KPIs");
             const kpis = await res.json();
             
@@ -177,6 +212,12 @@ const App = {
             document.getElementById("kpi-in-maintenance").textContent = kpis.vehiclesInMaintenance;
             document.getElementById("kpi-active-trips").textContent = kpis.activeTrips;
             document.getElementById("kpi-fleet-utilization").textContent = `${kpis.fleetUtilization}%`;
+
+            const pendingTripsEl = document.getElementById("kpi-pending-trips");
+            if (pendingTripsEl) pendingTripsEl.textContent = kpis.pendingTrips !== undefined ? kpis.pendingTrips : '-';
+
+            const driversOnDutyEl = document.getElementById("kpi-drivers-on-duty");
+            if (driversOnDutyEl) driversOnDutyEl.textContent = kpis.driversOnDuty !== undefined ? kpis.driversOnDuty : '-';
 
             // Fetch ROI details to show summary stats in the overview panel
             const roiRes = await fetch("/api/analytics/vehicle-roi");
@@ -397,6 +438,7 @@ const App = {
             }
             if (!res.ok) throw new Error("Failed to load ROI report");
             const roiList = await res.json();
+            App.state.roiList = roiList;
             if (analyticsOverlay) analyticsOverlay.style.display = "none";
 
             const grid = document.getElementById("analytics-grid-body");
@@ -461,9 +503,215 @@ const App = {
                 grid.appendChild(card);
             });
 
+            // Render visual charts (Profit, ROI, and Returns)
+            App.renderCharts(roiList);
+
         } catch (err) {
             console.error("Access issue in Analytics view:", err);
         }
+    },
+
+    financialsChartInstance: null,
+    roiChartInstance: null,
+
+    renderCharts: (roiList) => {
+        const labels = roiList.map(item => item.registrationNumber);
+        
+        // Extract data
+        const revenues = roiList.map(item => item.revenue || 0);
+        const opCosts = roiList.map(item => (item.totalOperationalCost || 0) + (item.totalExpensesCost || 0));
+        const profits = roiList.map(item => (item.revenue || 0) - ((item.totalOperationalCost || 0) + (item.totalExpensesCost || 0)));
+        const rois = roiList.map(item => item.roi || 0);
+
+        // Destroy existing chart instances if any
+        if (App.financialsChartInstance) {
+            App.financialsChartInstance.destroy();
+        }
+        if (App.roiChartInstance) {
+            App.roiChartInstance.destroy();
+        }
+
+        const financialsCtx = document.getElementById('financialsChart');
+        if (financialsCtx) {
+            App.financialsChartInstance = new Chart(financialsCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Returns (Revenue)',
+                            data: revenues,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Costs (Ops & Exp)',
+                            data: opCosts,
+                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Net Profit',
+                            data: profits,
+                            backgroundColor: profits.map(p => p >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                            borderColor: profits.map(p => p >= 0 ? '#10b981' : '#ef4444'),
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { family: 'Inter' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#9ca3af',
+                                font: { family: 'Inter' },
+                                callback: function(value) { return '$' + value; }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f3f4f6', font: { family: 'Inter' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const roiCtx = document.getElementById('roiChart');
+        if (roiCtx) {
+            App.roiChartInstance = new Chart(roiCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'ROI %',
+                            data: rois,
+                            backgroundColor: rois.map(r => r >= 0 ? 'rgba(168, 85, 247, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                            borderColor: rois.map(r => r >= 0 ? '#a855f7' : '#ef4444'),
+                            borderWidth: 1.5,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { family: 'Inter' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#9ca3af',
+                                font: { family: 'Inter' },
+                                callback: function(value) { return value + '%'; }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f3f4f6', font: { family: 'Inter' } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    },
+
+    exportRoiToCsv: (roiList) => {
+        if (!roiList || roiList.length === 0) {
+            alert('No data available to export');
+            return;
+        }
+
+        // Header definitions
+        const headers = [
+            'Registration Number',
+            'Model',
+            'Type',
+            'Acquisition Cost ($)',
+            'Total Maintenance Cost ($)',
+            'Total Fuel Cost ($)',
+            'Total Expenses Cost ($)',
+            'Total Operational Cost ($)',
+            'Calculated Revenue ($)',
+            'ROI (%)'
+        ];
+
+        // Format rows
+        const rows = roiList.map(item => [
+            `"${item.registrationNumber}"`,
+            `"${item.model}"`,
+            `"${item.type}"`,
+            item.acquisitionCost.toFixed(2),
+            item.totalMaintenanceCost.toFixed(2),
+            item.totalFuelCost.toFixed(2),
+            item.totalExpensesCost.toFixed(2),
+            item.totalOperationalCost.toFixed(2),
+            item.revenue.toFixed(2),
+            (item.roi || 0).toFixed(2)
+        ]);
+
+        // Construct CSV content
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(r => r.join(','))
+        ].join('\n');
+
+        // Trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `TransitOps_Vehicle_ROI_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     },
 
     // Setup Forms

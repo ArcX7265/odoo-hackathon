@@ -18,8 +18,10 @@ public class AnalyticsController {
     }
 
     @GetMapping("/kpi-summary")
-    public ResponseEntity<Map<String, Object>> getKpiSummary() {
-        return ResponseEntity.ok(financialService.getKpiSummary());
+    public ResponseEntity<Map<String, Object>> getKpiSummary(
+            @RequestParam(required = false) String vehicleType,
+            @RequestParam(required = false) String vehicleStatus) {
+        return ResponseEntity.ok(financialService.getKpiSummary(vehicleType, vehicleStatus));
     }
 
     @GetMapping("/vehicle-roi")
