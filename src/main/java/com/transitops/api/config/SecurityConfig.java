@@ -51,18 +51,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .headers(headers -> headers.frameOptions(frame -> frame.disable())) // Enable H2 console or iframe if needed
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + authException.getMessage() + "\"}");
-                })
-                .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"Forbidden\", \"message\": \"Access denied\"}");
-                })
-            )
+
             .authorizeHttpRequests(auth -> auth
                 // Allow static resources and the login page
                 .requestMatchers("/login.html", "/app.css", "/app.js", "/favicon.ico", "/css/**", "/js/**").permitAll()
@@ -70,6 +59,7 @@ public class SecurityConfig {
                 .requestMatchers("/fleet.html").hasRole("FLEET_MANAGER")
                 .requestMatchers("/financial.html").hasRole("FINANCIAL_ANALYST")
                 .requestMatchers("/dispatcher.html").hasAnyRole("DISPATCHER", "DRIVER")
+                .requestMatchers("/driver.html").hasRole("DRIVER")
                 // Role-based access control for APIs
                 .requestMatchers("/api/analytics/**", "/api/expenses/**").hasAnyRole("FLEET_MANAGER", "FINANCIAL_ANALYST")
                 .requestMatchers(HttpMethod.GET, "/api/vehicles/**", "/api/drivers/**").hasAnyRole("FLEET_MANAGER", "DRIVER", "SAFETY_OFFICER", "FINANCIAL_ANALYST")

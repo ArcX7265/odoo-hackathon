@@ -32,6 +32,10 @@ public class TripService {
         return response;
     }
 
+    public List<Trip> getActiveDispatches() {
+        return tripRepository.findByStatusIn(List.of("Dispatched", "In Progress"));
+    }
+
     @Transactional
     public Trip createDraftTrip(Trip trip) {
         trip.setStatus("Draft");
