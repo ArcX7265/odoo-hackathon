@@ -10,9 +10,17 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1>TransitOps <span>Dispatch Engine</span></h1>
-            <p>Live Fleet Management Interface</p>
+        <header class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>TransitOps <span>Dispatch Engine</span></h1>
+                <p>Live Fleet Management Interface</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span style="color: #cbd5e1;">Dispatcher</span>
+                <form action="/logout" method="POST" style="margin: 0;">
+                    <button type="submit" style="background-color: transparent; border: 1px solid #475569; color: #f8fafc; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Logout</button>
+                </form>
+            </div>
         </header>
 
         <main class="dispatch-grid">
@@ -92,6 +100,6 @@
             </section>
         </main>
     </div>
-    <script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>

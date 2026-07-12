@@ -21,9 +21,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final RoleBasedAuthenticationSuccessHandler successHandler;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          RoleBasedAuthenticationSuccessHandler successHandler) {
         this.userDetailsService = userDetailsService;
+        this.successHandler = successHandler;
     }
 
     @Bean
@@ -37,14 +40,29 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Allow static resources (frontend HTML/CSS/JS)
-                .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico", "/css/**", "/js/**").permitAll()
-                // Role-based access control for analytics and expenses
+                // Allow static resources and the login page
+                .requestMatchers("/login.html", "/app.css", "/app.js", "/favicon.ico", "/css/**", "/js/**").permitAll()
+                // Role-based access control for dashboards
+                .requestMatchers("/fleet.html").hasRole("FLEET_MANAGER")
+                .requestMatchers("/financial.html").hasRole("FINANCIAL_ANALYST")
+                .requestMatchers("/dispatcher.html").hasAnyRole("DISPATCHER", "DRIVER")
+                // Role-based access control for APIs
                 .requestMatchers("/api/analytics/**", "/api/expenses/**").hasAnyRole("FLEET_MANAGER", "FINANCIAL_ANALYST")
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults()); // Enable Basic Authentication
+            .formLogin(form -> form
+                .loginPage("/login.html")
+                .loginProcessingUrl("/login")
+                .successHandler(successHandler)
+                .failureUrl("/login.html?error")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login.html?logout")
+                .permitAll()
+            );
 
         return http.build();
     }
