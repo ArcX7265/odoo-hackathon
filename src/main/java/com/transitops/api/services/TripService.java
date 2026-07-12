@@ -44,16 +44,15 @@ public class TripService {
     }
 
     @Transactional
-    public Trip updateTripStatus(Integer id, String newStatus) {
+    public Trip updateTripStatus(Integer id, String newStatus, Integer finalOdometer, java.math.BigDecimal fuelConsumed) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         String oldStatus = trip.getStatus();
-        
+
+        // Dispatch handling – set vehicle and driver to On Trip
         if ("Dispatched".equals(newStatus) && !"Dispatched".equals(oldStatus)) {
             validateDispatch(trip);
-            
-            // Dispatching a trip automatically changes both the vehicle and driver status to On Trip.
             if (trip.getVehicle() != null) {
                 Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId()).orElseThrow();
                 vehicle.setStatus("On Trip");
@@ -66,22 +65,44 @@ public class TripService {
             }
         }
 
-        // Completing or cancelling a dispatched/in-progress trip restores them to Available
-        if (("Completed".equals(newStatus) || "Cancelled".equals(newStatus)) 
-             && ("Dispatched".equals(oldStatus) || "In Progress".equals(oldStatus))) {
-            
-            if (trip.getVehicle() != null) {
-                Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId()).orElseThrow();
-                if (!"Retired".equals(vehicle.getStatus())) {
+        // Completion or cancellation handling – revert statuses to Available where appropriate
+        if (("Completed".equals(newStatus) || "Cancelled".equals(newStatus))
+                && ("Dispatched".equals(oldStatus) || "In Progress".equals(oldStatus))) {
+            if ("Completed".equals(newStatus)) {
+                if (finalOdometer == null || fuelConsumed == null) {
+                    throw new IllegalArgumentException("Final odometer and fuel consumed must be entered to complete a trip.");
+                }
+                trip.setFinalOdometer(finalOdometer);
+                trip.setFuelConsumed(fuelConsumed);
+
+                if (trip.getVehicle() != null) {
+                    Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId()).orElseThrow();
+                    if (vehicle.getOdometer() != null && finalOdometer < vehicle.getOdometer()) {
+                        throw new IllegalArgumentException("Final odometer (" + finalOdometer + ") cannot be less than current odometer (" + vehicle.getOdometer() + ").");
+                    }
                     vehicle.setStatus("Available");
+                    vehicle.setOdometer(finalOdometer);
                     vehicleRepository.save(vehicle);
                 }
-            }
-            if (trip.getDriver() != null) {
-                Driver driver = driverRepository.findById(trip.getDriver().getId()).orElseThrow();
-                if (!"Suspended".equals(driver.getStatus())) {
+                if (trip.getDriver() != null) {
+                    Driver driver = driverRepository.findById(trip.getDriver().getId()).orElseThrow();
                     driver.setStatus("Available");
                     driverRepository.save(driver);
+                }
+            } else { // Cancelled
+                if (trip.getVehicle() != null) {
+                    Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId()).orElseThrow();
+                    if (!"Retired".equals(vehicle.getStatus())) {
+                        vehicle.setStatus("Available");
+                        vehicleRepository.save(vehicle);
+                    }
+                }
+                if (trip.getDriver() != null) {
+                    Driver driver = driverRepository.findById(trip.getDriver().getId()).orElseThrow();
+                    if (!"Suspended".equals(driver.getStatus())) {
+                        driver.setStatus("Available");
+                        driverRepository.save(driver);
+                    }
                 }
             }
         }
