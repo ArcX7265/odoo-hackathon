@@ -99,6 +99,30 @@
             font-weight: 400;
         }
 
+        .logout-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--panel-border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error-color);
+            color: var(--error-color);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
         .dispatch-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -369,6 +393,11 @@
 <body>
     <div class="dashboard-container">
         <header class="dashboard-header">
+            <div class="logout-container">
+                <form action="/logout" method="POST" style="margin: 0;">
+                    <button type="submit" class="logout-btn">Logout</button>
+                </form>
+            </div>
             <h1>TransitOps <span>Dispatch Engine</span></h1>
             <p>Live Fleet Management Interface</p>
         </header>

@@ -34,7 +34,11 @@ public class TripController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Trip> updateStatus(@PathVariable Integer id, @RequestParam String status) {
-        return ResponseEntity.ok(tripService.updateTripStatus(id, status));
+    public ResponseEntity<Trip> updateStatus(
+            @PathVariable Integer id,
+            @RequestParam String status,
+            @RequestParam(required = false) Integer finalOdometer,
+            @RequestParam(required = false) java.math.BigDecimal fuelConsumed) {
+        return ResponseEntity.ok(tripService.updateTripStatus(id, status, finalOdometer, fuelConsumed));
     }
 }
