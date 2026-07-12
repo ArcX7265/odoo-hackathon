@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitOps - Driver Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: var(--surface-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header h1 span {
+            color: var(--primary);
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .main-container {
+            flex: 1;
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .trip-card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .trip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .trip-id {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-dispatched {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-in-progress {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .trip-details {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 600px) {
+            .trip-details {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .route {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            color: white;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-start {
+            background-color: var(--primary);
+        }
+
+        .btn-complete {
+            background-color: var(--success);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🚚 Transit<span>Ops</span> Driver</h1>
+        <form action="/logout" method="POST" style="margin: 0;">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </header>
+
+    <div class="main-container">
+        <h2 class="section-title">My Active Assignments</h2>
+        <div id="trips-container">
+            <div class="empty-state">Loading assignments...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchActiveTrips();
+        });
+
+        async function fetchActiveTrips() {
+            try {
+                const response = await fetch('/api/trips/active');
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    throw new Error('Failed to fetch trips');
+                }
+                const trips = await response.json();
+                renderTrips(trips);
+            } catch (error) {
+                console.error('Error fetching trips:', error);
+                document.getElementById('trips-container').innerHTML = 
+                    `<div class="empty-state">Error loading assignments. Please try again.</div>`;
+            }
+        }
+
+        function renderTrips(trips) {
+            const container = document.getElementById('trips-container');
+            
+            if (!trips || trips.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">☕</div>
+                    No active assignments right now.<br>Relax and wait for dispatch.
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = trips.map(trip => `
+                <div class="trip-card">
+                    <div class="trip-header">
+                        <div class="trip-id">Trip #${trip.id}</div>
+                        <div class="status-badge ${trip.status === 'Dispatched' ? 'status-dispatched' : 'status-in-progress'}">
+                            ${trip.status}
+                        </div>
+                    </div>
+                    
+                    <div class="route">
+                        <span>${trip.source}</span>
+                        <span style="color: var(--text-muted);">→</span>
+                        <span>${trip.destination}</span>
+                    </div>
+
+                    <div class="trip-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Vehicle</span>
+                            <span class="detail-value">${trip.vehicle ? trip.vehicle.registrationNumber : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Cargo Weight</span>
+                            <span class="detail-value">${trip.cargoWeight ? trip.cargoWeight + ' lbs' : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Distance</span>
+                            <span class="detail-value">${trip.plannedDistance ? trip.plannedDistance + ' miles' : 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    ${trip.status === 'Dispatched' ? 
+                        `<button class="action-btn btn-start" onclick="updateTripStatus(${trip.id}, 'In Progress')">
+                            Start Trip
+                        </button>` : 
+                        `<button class="action-btn btn-complete" onclick="updateTripStatus(${trip.id}, 'Completed')">
+                            Complete Trip
+                        </button>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        async function updateTripStatus(tripId, newStatus) {
+            try {
+                const response = await fetch(`/api/trips/${tripId}/status?status=${encodeURIComponent(newStatus)}`, {
+                    method: 'PUT'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update status');
+                }
+
+                // Refresh the list
+                fetchActiveTrips();
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('Failed to update trip status. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

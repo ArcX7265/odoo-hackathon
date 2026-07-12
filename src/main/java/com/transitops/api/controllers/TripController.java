@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,6 +21,11 @@ public class TripController {
     @GetMapping("/available-assets")
     public ResponseEntity<Map<String, Object>> getAvailableAssets() {
         return ResponseEntity.ok(tripService.getAvailableAssets());
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<List<Trip>> getActiveDispatches() {
+        return ResponseEntity.ok(tripService.getActiveDispatches());
     }
 
     @PostMapping

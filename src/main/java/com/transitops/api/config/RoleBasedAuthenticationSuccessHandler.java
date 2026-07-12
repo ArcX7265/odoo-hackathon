@@ -54,8 +54,11 @@ public class RoleBasedAuthenticationSuccessHandler implements AuthenticationSucc
         } else if (requestedRole.equals("ROLE_FINANCIAL_ANALYST")) {
             response.sendRedirect("/financial.html");
             return;
-        } else if (requestedRole.equals("ROLE_DISPATCHER") || requestedRole.equals("ROLE_DRIVER")) {
+        } else if (requestedRole.equals("ROLE_DISPATCHER")) {
             response.sendRedirect("/dispatcher.html");
+            return;
+        } else if (requestedRole.equals("ROLE_DRIVER")) {
+            response.sendRedirect("/driver.html");
             return;
         }
         
