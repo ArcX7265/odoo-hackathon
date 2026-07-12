@@ -7,4 +7,5 @@ import java.util.List;
 public interface TripRepository extends JpaRepository<Trip, Integer> {
     List<Trip> findByVehicleId(Integer vehicleId);
     List<Trip> findByVehicleIdAndStatus(Integer vehicleId, String status);
+    List<Trip> findByStatusIn(List<String> statuses);
 }
