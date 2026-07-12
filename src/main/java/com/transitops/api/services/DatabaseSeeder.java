@@ -66,7 +66,13 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .role("Driver")
                 .build();
 
-        userRepository.saveAll(List.of(manager, analyst, driverUser));
+        User dispatcher = User.builder()
+                .email("dispatcher@transitops.com")
+                .passwordHash(encoder.encode("password"))
+                .role("Dispatcher")
+                .build();
+
+        userRepository.saveAll(List.of(manager, analyst, driverUser, dispatcher));
 
         // 2. Seed Vehicles
         Vehicle v1 = Vehicle.builder()

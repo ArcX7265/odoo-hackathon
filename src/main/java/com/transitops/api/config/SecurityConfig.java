@@ -27,9 +27,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final RoleBasedAuthenticationSuccessHandler successHandler;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService,
+                          RoleBasedAuthenticationSuccessHandler successHandler) {
         this.userDetailsService = userDetailsService;
+        this.successHandler = successHandler;
     }
 
     @Bean
@@ -61,23 +64,31 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/app.css", "/app.js", "/favicon.ico", "/css/**", "/js/**").permitAll()
-                .requestMatchers("/api/auth/login", "/api/auth/logout", "/api/auth/me").permitAll()
+                // Allow static resources and the login page
+                .requestMatchers("/login.html", "/app.css", "/app.js", "/favicon.ico", "/css/**", "/js/**").permitAll()
+                // Role-based access control for dashboards
+                .requestMatchers("/fleet.html").hasRole("FLEET_MANAGER")
+                .requestMatchers("/financial.html").hasRole("FINANCIAL_ANALYST")
+                .requestMatchers("/dispatcher.html").hasAnyRole("DISPATCHER", "DRIVER")
+                // Role-based access control for APIs
                 .requestMatchers("/api/analytics/**", "/api/expenses/**").hasAnyRole("FLEET_MANAGER", "FINANCIAL_ANALYST")
                 .requestMatchers(HttpMethod.GET, "/api/vehicles/**", "/api/drivers/**").hasAnyRole("FLEET_MANAGER", "DRIVER", "SAFETY_OFFICER", "FINANCIAL_ANALYST")
                 .requestMatchers("/api/vehicles/**").hasRole("FLEET_MANAGER")
                 .requestMatchers("/api/drivers/**").hasAnyRole("FLEET_MANAGER", "SAFETY_OFFICER")
                 .anyRequest().authenticated()
             )
-            .logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
-                .logoutSuccessHandler((request, response, authentication) -> {
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"message\": \"Logged out successfully\"}");
-                })
+            .formLogin(form -> form
+                .loginPage("/login.html")
+                .loginProcessingUrl("/login")
+                .successHandler(successHandler)
+                .failureUrl("/login.html?error")
+                .permitAll()
             )
-            .httpBasic(Customizer.withDefaults());
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login.html?logout")
+                .permitAll()
+            );
 
         return http.build();
     }
