@@ -6,7 +6,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "drivers")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,23 +16,24 @@ public class Driver {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(name = "license_number", nullable = false, unique = true)
+    @Column(name = "license_number", nullable = false, unique = true, length = 100)
     private String licenseNumber;
 
-    @Column(name = "license_category")
+    @Column(name = "license_category", length = 50)
     private String licenseCategory;
 
     @Column(name = "license_expiry_date")
     private LocalDate licenseExpiryDate;
 
-    @Column(name = "contact_number")
+    @Column(name = "contact_number", length = 50)
     private String contactNumber;
 
     @Column(name = "safety_score")
     private Integer safetyScore;
 
+    @Column(nullable = false)
     private String status = "Available"; // 'Available', 'On Trip', 'Off Duty', 'Suspended'
 }
