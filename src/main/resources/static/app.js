@@ -28,34 +28,43 @@ function initApp() {
 
     // 2. Role Switcher
     const roleSelect = document.getElementById("role-select");
-    roleSelect.addEventListener("change", (e) => {
-        const selectedRole = e.target.value;
-        if (selectedRole === "manager") {
-            currentCredentials = { username: "manager@transitops.com", password: "password", role: "manager" };
-        } else if (selectedRole === "analyst") {
-            currentCredentials = { username: "analyst@transitops.com", password: "password", role: "analyst" };
-        } else if (selectedRole === "driver") {
-            currentCredentials = { username: "driver@transitops.com", password: "password", role: "driver" };
-        }
-        
-        // Refresh active view based on new credentials
-        const activeNav = document.querySelector(".nav-item.active");
-        if (activeNav) {
-            switchView(activeNav.getAttribute("data-view"));
-        }
-    });
+    if (roleSelect) {
+        roleSelect.addEventListener("change", (e) => {
+            const selectedRole = e.target.value;
+            if (selectedRole === "manager") {
+                currentCredentials = { username: "manager@transitops.com", password: "password", role: "manager" };
+            } else if (selectedRole === "analyst") {
+                currentCredentials = { username: "analyst@transitops.com", password: "password", role: "analyst" };
+            } else if (selectedRole === "driver") {
+                currentCredentials = { username: "driver@transitops.com", password: "password", role: "driver" };
+            }
+            
+            // Refresh active view based on new credentials
+            const activeNav = document.querySelector(".nav-item.active");
+            if (activeNav) {
+                switchView(activeNav.getAttribute("data-view"));
+            }
+        });
+    }
 
     // 3. Form Setup and Tab bindings
     setupForms();
     
     // Set default dates to today
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById("maint-date").value = today;
-    document.getElementById("fuel-date").value = today;
-    document.getElementById("exp-date").value = today;
+    const maintDate = document.getElementById("maint-date");
+    if (maintDate) maintDate.value = today;
+    
+    const fuelDate = document.getElementById("fuel-date");
+    if (fuelDate) fuelDate.value = today;
+    
+    const expDate = document.getElementById("exp-date");
+    if (expDate) expDate.value = today;
 
     // Load initial data
-    loadVehiclesDropdowns();
+    if (document.getElementById("maint-vehicle") || document.getElementById("fuel-vehicle")) {
+        loadVehiclesDropdowns();
+    }
     
     // Load default dashboard
     switchView("dashboard");
@@ -79,16 +88,20 @@ function switchView(viewId) {
         "ledgers": "Fuel & Expense Ledgers",
         "analytics": "Analytics Reports"
     };
-    document.getElementById("view-title").textContent = viewTitleMap[viewId] || "Control Center";
+    
+    const viewTitleEl = document.getElementById("view-title");
+    if (viewTitleEl) {
+        viewTitleEl.textContent = viewTitleMap[viewId] || "Control Center";
+    }
 
     // Load specific view data
-    if (viewId === "dashboard") {
+    if (viewId === "dashboard" && document.getElementById("kpi-active-vehicles")) {
         loadKpis();
-    } else if (viewId === "maintenance") {
+    } else if (viewId === "maintenance" && document.getElementById("maintenance-ledger-body")) {
         loadMaintenanceLedger();
-    } else if (viewId === "ledgers") {
+    } else if (viewId === "ledgers" && document.getElementById("fuel-ledger-body")) {
         loadLedgerData();
-    } else if (viewId === "analytics") {
+    } else if (viewId === "analytics" && document.getElementById("analytics-grid-body")) {
         loadAnalyticsReport();
     }
 }
@@ -129,27 +142,33 @@ async function loadVehiclesDropdowns() {
         const expSelect = document.getElementById("exp-vehicle");
 
         // Clear existing options
-        maintSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
-        fuelSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
-        expSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+        if (maintSelect) maintSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+        if (fuelSelect) fuelSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+        if (expSelect) expSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
 
         vehicles.forEach(v => {
             const optionText = `${v.registrationNumber} - ${v.model} (${v.status})`;
             
-            const opt1 = document.createElement("option");
-            opt1.value = v.id;
-            opt1.textContent = optionText;
-            maintSelect.appendChild(opt1);
+            if (maintSelect) {
+                const opt1 = document.createElement("option");
+                opt1.value = v.id;
+                opt1.textContent = optionText;
+                maintSelect.appendChild(opt1);
+            }
 
-            const opt2 = document.createElement("option");
-            opt2.value = v.id;
-            opt2.textContent = optionText;
-            fuelSelect.appendChild(opt2);
+            if (fuelSelect) {
+                const opt2 = document.createElement("option");
+                opt2.value = v.id;
+                opt2.textContent = optionText;
+                fuelSelect.appendChild(opt2);
+            }
 
-            const opt3 = document.createElement("option");
-            opt3.value = v.id;
-            opt3.textContent = optionText;
-            expSelect.appendChild(opt3);
+            if (expSelect) {
+                const opt3 = document.createElement("option");
+                opt3.value = v.id;
+                opt3.textContent = optionText;
+                expSelect.appendChild(opt3);
+            }
         });
     } catch (err) {
         console.error("Failed to load vehicles dropdowns:", err);
@@ -175,23 +194,31 @@ async function loadKpis() {
             totalAcq += item.acquisitionCost || 0;
             totalOps += item.totalOperationalCost || 0;
         });
-        document.getElementById("stats-total-acq").textContent = `$${totalAcq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        document.getElementById("stats-total-ops").textContent = `$${totalOps.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        const totalAcqEl = document.getElementById("stats-total-acq");
+        const totalOpsEl = document.getElementById("stats-total-ops");
+        
+        if (totalAcqEl) totalAcqEl.textContent = `$${totalAcq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (totalOpsEl) totalOpsEl.textContent = `$${totalOps.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         
         // Hide access denied covers (if role changed back)
-        document.getElementById("expenses-access-denied").style.display = "none";
-        document.getElementById("analytics-access-denied").style.display = "none";
+        const expensesDenied = document.getElementById("expenses-access-denied");
+        const analyticsDenied = document.getElementById("analytics-access-denied");
+        if (expensesDenied) expensesDenied.style.display = "none";
+        if (analyticsDenied) analyticsDenied.style.display = "none";
+        
     } catch (err) {
         console.error("Error loading Dashboard KPIs:", err);
         if (err.status === 403 || err.status === 401) {
-            // Driver is restricted from accessing Dashboard KPIs as well because it hits /api/analytics
-            document.getElementById("kpi-active-vehicles").textContent = "🔒";
-            document.getElementById("kpi-available-vehicles").textContent = "🔒";
-            document.getElementById("kpi-in-maintenance").textContent = "🔒";
-            document.getElementById("kpi-active-trips").textContent = "🔒";
-            document.getElementById("kpi-fleet-utilization").textContent = "🔒";
-            document.getElementById("stats-total-acq").textContent = "Access Denied";
-            document.getElementById("stats-total-ops").textContent = "Access Denied";
+            if (document.getElementById("kpi-active-vehicles")) {
+                document.getElementById("kpi-active-vehicles").textContent = "🔒";
+                document.getElementById("kpi-available-vehicles").textContent = "🔒";
+                document.getElementById("kpi-in-maintenance").textContent = "🔒";
+                document.getElementById("kpi-active-trips").textContent = "🔒";
+                document.getElementById("kpi-fleet-utilization").textContent = "🔒";
+            }
+            if (document.getElementById("stats-total-acq")) document.getElementById("stats-total-acq").textContent = "Access Denied";
+            if (document.getElementById("stats-total-ops")) document.getElementById("stats-total-ops").textContent = "Access Denied";
         }
     }
 }
@@ -201,6 +228,8 @@ async function loadMaintenanceLedger() {
     try {
         const logs = await fetchWithAuth("/api/maintenance");
         const tbody = document.getElementById("maintenance-ledger-body");
+        if (!tbody) return;
+        
         tbody.innerHTML = "";
 
         if (logs.length === 0) {
@@ -258,52 +287,56 @@ async function loadLedgerData() {
         // Load Fuel logs (publicly available for all authenticated users)
         const fuelLogs = await fetchWithAuth("/api/fuel-logs");
         const fuelBody = document.getElementById("fuel-ledger-body");
-        fuelBody.innerHTML = "";
-
-        if (fuelLogs.length === 0) {
-            fuelBody.innerHTML = '<tr><td colspan="5" class="text-center">No fuel refill logs found</td></tr>';
-        } else {
-            fuelLogs.forEach(log => {
-                const tr = document.createElement("tr");
-                const pricePerLiter = log.liters > 0 ? (log.cost / log.liters).toFixed(2) : '0.00';
-                tr.innerHTML = `
-                    <td class="text-bold">${log.vehicle ? log.vehicle.registrationNumber : 'Unknown'}</td>
-                    <td>${log.liters.toFixed(2)} L</td>
-                    <td>$${log.cost.toFixed(2)}</td>
-                    <td>$${pricePerLiter}/L</td>
-                    <td>${log.logDate}</td>
-                `;
-                fuelBody.appendChild(tr);
-            });
+        
+        if (fuelBody) {
+            fuelBody.innerHTML = "";
+            if (fuelLogs.length === 0) {
+                fuelBody.innerHTML = '<tr><td colspan="5" class="text-center">No fuel refill logs found</td></tr>';
+            } else {
+                fuelLogs.forEach(log => {
+                    const tr = document.createElement("tr");
+                    const pricePerLiter = log.liters > 0 ? (log.cost / log.liters).toFixed(2) : '0.00';
+                    tr.innerHTML = `
+                        <td class="text-bold">${log.vehicle ? log.vehicle.registrationNumber : 'Unknown'}</td>
+                        <td>${log.liters.toFixed(2)} L</td>
+                        <td>$${log.cost.toFixed(2)}</td>
+                        <td>$${pricePerLiter}/L</td>
+                        <td>${log.logDate}</td>
+                    `;
+                    fuelBody.appendChild(tr);
+                });
+            }
         }
 
         // Hide overlay in case it was shown before
-        expensesOverlay.style.display = "none";
+        if (expensesOverlay) expensesOverlay.style.display = "none";
 
         // Load Expenses (Role restricted)
         const expenses = await fetchWithAuth("/api/expenses");
         const expBody = document.getElementById("expense-ledger-body");
-        expBody.innerHTML = "";
-
-        if (expenses.length === 0) {
-            expBody.innerHTML = '<tr><td colspan="4" class="text-center">No operational expenses found</td></tr>';
-        } else {
-            expenses.forEach(e => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td class="text-bold">${e.vehicle ? e.vehicle.registrationNumber : 'Unknown'}</td>
-                    <td><span class="badge badge-trip">${e.type}</span></td>
-                    <td>$${e.amount.toFixed(2)}</td>
-                    <td>${e.date}</td>
-                `;
-                expBody.appendChild(tr);
-            });
+        
+        if (expBody) {
+            expBody.innerHTML = "";
+            if (expenses.length === 0) {
+                expBody.innerHTML = '<tr><td colspan="4" class="text-center">No operational expenses found</td></tr>';
+            } else {
+                expenses.forEach(e => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="text-bold">${e.vehicle ? e.vehicle.registrationNumber : 'Unknown'}</td>
+                        <td><span class="badge badge-trip">${e.type}</span></td>
+                        <td>$${e.amount.toFixed(2)}</td>
+                        <td>${e.date}</td>
+                    `;
+                    expBody.appendChild(tr);
+                });
+            }
         }
 
     } catch (err) {
         console.error("Access issue in Ledger Data:", err);
         if (err.status === 403 || err.status === 401) {
-            expensesOverlay.style.display = "flex";
+            if (expensesOverlay) expensesOverlay.style.display = "flex";
         }
     }
 }
@@ -314,9 +347,11 @@ async function loadAnalyticsReport() {
     
     try {
         const roiList = await fetchWithAuth("/api/analytics/vehicle-roi");
-        analyticsOverlay.style.display = "none";
+        if (analyticsOverlay) analyticsOverlay.style.display = "none";
 
         const grid = document.getElementById("analytics-grid-body");
+        if (!grid) return;
+        
         grid.innerHTML = "";
 
         if (roiList.length === 0) {
@@ -380,7 +415,7 @@ async function loadAnalyticsReport() {
     } catch (err) {
         console.error("Access issue in Analytics view:", err);
         if (err.status === 403 || err.status === 401) {
-            analyticsOverlay.style.display = "flex";
+            if (analyticsOverlay) analyticsOverlay.style.display = "flex";
         }
     }
 }
@@ -389,122 +424,130 @@ async function loadAnalyticsReport() {
 function setupForms() {
     // 1. Maintenance Form Submission
     const maintForm = document.getElementById("maintenance-form");
-    maintForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
-        const vehicleId = document.getElementById("maint-vehicle").value;
-        const description = document.getElementById("maint-description").value;
-        const cost = parseFloat(document.getElementById("maint-cost").value);
-        const date = document.getElementById("maint-date").value;
+    if (maintForm) {
+        maintForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const vehicleId = document.getElementById("maint-vehicle").value;
+            const description = document.getElementById("maint-description").value;
+            const cost = parseFloat(document.getElementById("maint-cost").value);
+            const date = document.getElementById("maint-date").value;
 
-        try {
-            await fetchWithAuth("/api/maintenance", {
-                method: "POST",
-                body: JSON.stringify({
-                    vehicle: { id: parseInt(vehicleId) },
-                    description: description,
-                    cost: cost,
-                    logDate: date,
-                    status: "Open"
-                })
-            });
+            try {
+                await fetchWithAuth("/api/maintenance", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        vehicle: { id: parseInt(vehicleId) },
+                        description: description,
+                        cost: cost,
+                        logDate: date,
+                        status: "Open"
+                    })
+                });
 
-            // Reset Form and reload dropdowns/ledgers
-            maintForm.reset();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById("maint-date").value = today;
+                // Reset Form and reload dropdowns/ledgers
+                maintForm.reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("maint-date").value = today;
 
-            await loadVehiclesDropdowns();
-            await loadMaintenanceLedger();
-        } catch (err) {
-            console.error("Failed to submit maintenance log:", err);
-            alert("Error submitting log. Check credentials and role settings.");
-        }
-    });
+                await loadVehiclesDropdowns();
+                await loadMaintenanceLedger();
+            } catch (err) {
+                console.error("Failed to submit maintenance log:", err);
+                alert("Error submitting log. Check credentials and role settings.");
+            }
+        });
+    }
 
     // 2. Fuel Log Form Submission
     const fuelForm = document.getElementById("fuel-form");
-    fuelForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
-        const vehicleId = document.getElementById("fuel-vehicle").value;
-        const liters = parseFloat(document.getElementById("fuel-liters").value);
-        const cost = parseFloat(document.getElementById("fuel-cost").value);
-        const date = document.getElementById("fuel-date").value;
+    if (fuelForm) {
+        fuelForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const vehicleId = document.getElementById("fuel-vehicle").value;
+            const liters = parseFloat(document.getElementById("fuel-liters").value);
+            const cost = parseFloat(document.getElementById("fuel-cost").value);
+            const date = document.getElementById("fuel-date").value;
 
-        try {
-            await fetchWithAuth("/api/fuel-logs", {
-                method: "POST",
-                body: JSON.stringify({
-                    vehicle: { id: parseInt(vehicleId) },
-                    liters: liters,
-                    cost: cost,
-                    logDate: date
-                })
-            });
+            try {
+                await fetchWithAuth("/api/fuel-logs", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        vehicle: { id: parseInt(vehicleId) },
+                        liters: liters,
+                        cost: cost,
+                        logDate: date
+                    })
+                });
 
-            fuelForm.reset();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById("fuel-date").value = today;
+                fuelForm.reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("fuel-date").value = today;
 
-            await loadLedgerData();
-        } catch (err) {
-            console.error("Failed to submit fuel log:", err);
-            alert("Error logging fuel refills.");
-        }
-    });
+                await loadLedgerData();
+            } catch (err) {
+                console.error("Failed to submit fuel log:", err);
+                alert("Error logging fuel refills.");
+            }
+        });
+    }
 
     // 3. Operational Expense Form Submission
     const expForm = document.getElementById("expense-form");
-    expForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
-        const vehicleId = document.getElementById("exp-vehicle").value;
-        const type = document.getElementById("exp-type").value;
-        const amount = parseFloat(document.getElementById("exp-amount").value);
-        const date = document.getElementById("exp-date").value;
+    if (expForm) {
+        expForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const vehicleId = document.getElementById("exp-vehicle").value;
+            const type = document.getElementById("exp-type").value;
+            const amount = parseFloat(document.getElementById("exp-amount").value);
+            const date = document.getElementById("exp-date").value;
 
-        try {
-            await fetchWithAuth("/api/expenses", {
-                method: "POST",
-                body: JSON.stringify({
-                    vehicle: { id: parseInt(vehicleId) },
-                    type: type,
-                    amount: amount,
-                    date: date
-                })
-            });
+            try {
+                await fetchWithAuth("/api/expenses", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        vehicle: { id: parseInt(vehicleId) },
+                        type: type,
+                        amount: amount,
+                        date: date
+                    })
+                });
 
-            expForm.reset();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById("exp-date").value = today;
+                expForm.reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById("exp-date").value = today;
 
-            await loadLedgerData();
-        } catch (err) {
-            console.error("Failed to submit expense log:", err);
-            alert("Failed to log expense. Check permission credentials.");
-        }
-    });
+                await loadLedgerData();
+            } catch (err) {
+                console.error("Failed to submit expense log:", err);
+                alert("Failed to log expense. Check permission credentials.");
+            }
+        });
+    }
 
     // 4. Tab switcher triggers: Form Switcher (Fuel vs Expense Forms)
     const formTabFuel = document.getElementById("form-tab-fuel");
     const formTabExpense = document.getElementById("form-tab-expense");
     
-    formTabFuel.addEventListener("click", () => {
-        formTabFuel.classList.add("active");
-        formTabExpense.classList.remove("active");
-        
-        fuelForm.classList.remove("hidden");
-        expForm.classList.add("hidden");
-    });
+    if (formTabFuel && formTabExpense) {
+        formTabFuel.addEventListener("click", () => {
+            formTabFuel.classList.add("active");
+            formTabExpense.classList.remove("active");
+            
+            fuelForm.classList.remove("hidden");
+            expForm.classList.add("hidden");
+        });
 
-    formTabExpense.addEventListener("click", () => {
-        formTabExpense.classList.add("active");
-        formTabFuel.classList.remove("active");
-        
-        expForm.classList.remove("hidden");
-        fuelForm.classList.add("hidden");
-    });
+        formTabExpense.addEventListener("click", () => {
+            formTabExpense.classList.add("active");
+            formTabFuel.classList.remove("active");
+            
+            if (expForm) expForm.classList.remove("hidden");
+            if (fuelForm) fuelForm.classList.add("hidden");
+        });
+    }
 
     // 5. Tab switcher triggers: Ledger Table Switcher
     const tabBtnFuel = document.getElementById("tab-btn-fuel");
@@ -512,19 +555,21 @@ function setupForms() {
     const tabContentFuel = document.getElementById("tab-content-fuel");
     const tabContentExpense = document.getElementById("tab-content-expense");
 
-    tabBtnFuel.addEventListener("click", () => {
-        tabBtnFuel.classList.add("active");
-        tabBtnExpense.classList.remove("active");
-        
-        tabContentFuel.classList.remove("hidden");
-        tabContentExpense.classList.add("hidden");
-    });
+    if (tabBtnFuel && tabBtnExpense && tabContentFuel && tabContentExpense) {
+        tabBtnFuel.addEventListener("click", () => {
+            tabBtnFuel.classList.add("active");
+            tabBtnExpense.classList.remove("active");
+            
+            tabContentFuel.classList.remove("hidden");
+            tabContentExpense.classList.add("hidden");
+        });
 
-    tabBtnExpense.addEventListener("click", () => {
-        tabBtnExpense.classList.add("active");
-        tabBtnFuel.classList.remove("active");
-        
-        tabContentExpense.classList.remove("hidden");
-        tabContentFuel.classList.add("hidden");
-    });
+        tabBtnExpense.addEventListener("click", () => {
+            tabBtnExpense.classList.add("active");
+            tabBtnFuel.classList.remove("active");
+            
+            tabContentExpense.classList.remove("hidden");
+            tabContentFuel.classList.add("hidden");
+        });
+    }
 }
