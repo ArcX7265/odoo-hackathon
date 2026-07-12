@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td><span class="status-badge" style="background: rgba(139, 92, 246, 0.1); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${trip.status}</span></td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                             <button class="btn btn-primary complete-btn" data-id="${trip.id}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Complete</button>
                             <button class="btn cancel-btn" data-id="${trip.id}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--error-color); color: var(--error-color);">Cancel</button>
                         </div>
@@ -256,4 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Error completing trip: ${error.message}`);
         }
     });
+
+    // Map functionality removed as per user request
 });

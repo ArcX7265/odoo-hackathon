@@ -434,17 +434,24 @@
         async function updateTripStatus(tripId, newStatus) {
             try {
                 const response = await fetch(`/api/trips/${tripId}/status?status=${encodeURIComponent(newStatus)}`, {
-                    method: 'PUT'
+                    method: 'PUT',
+                    headers: { 'Accept': 'application/json' }
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to update status');
+                    const errorMsg = await response.text();
+                    try {
+                        const errJson = JSON.parse(errorMsg);
+                        throw new Error(errJson.message || 'Failed to update status');
+                    } catch (pErr) {
+                        throw new Error(errorMsg || 'Failed to update status');
+                    }
                 }
 
                 fetchActiveTrips();
             } catch (error) {
                 console.error('Error updating status:', error);
-                alert('Failed to update trip status. Please try again.');
+                alert(`Failed to update trip status: ${error.message}`);
             }
         }
 
@@ -460,7 +467,8 @@
 
                 try {
                     const response = await fetch(`/api/trips/${tripId}/status?status=Completed&finalOdometer=${finalOdometer}&fuelConsumed=${fuelConsumed}`, {
-                        method: 'PUT'
+                        method: 'PUT',
+                        headers: { 'Accept': 'application/json' }
                     });
 
                     if (!response.ok) {

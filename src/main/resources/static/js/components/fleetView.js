@@ -179,7 +179,10 @@ export const FleetView = {
                         <td>${v.model || 'N/A'}</td>
                         <td>${v.type}</td>
                         <td>${v.maxLoadCapacity ? v.maxLoadCapacity.toLocaleString() : 'N/A'} kg</td>
-                        <td>${v.odometer ? v.odometer.toLocaleString() : 0} km</td>
+                        <td>
+                            ${v.odometer ? v.odometer.toLocaleString() : 0} km
+                            ${v.odometer > 50000 ? '<span class="to-badge to-badge-warning" style="margin-left: 8px;">⚠️ Maintenance Due</span>' : ''}
+                        </td>
                         <td>${v.acquisitionCost ? formatter.format(v.acquisitionCost) : '$0.00'}</td>
                         <td>${getStatusBadge(v.status)}</td>
                         ${isManager ? `
