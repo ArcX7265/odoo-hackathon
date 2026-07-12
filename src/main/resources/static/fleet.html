@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Registry - TransitOps</title>
+    
+    <!-- Link to the custom dark logistics theme CSS -->
+    <link rel="stylesheet" href="/css/styles.css">
+    
+    <style>
+        /* Minimal layout CSS to position Sidebar and Main Container side-by-side */
+        body {
+            display: flex;
+            margin: 0;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-card, #1d212d);
+            border-right: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .sidebar-logo {
+            font-family: var(--font-heading, sans-serif);
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--color-primary, #3b82f6), var(--color-accent, #f59e0b));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar a {
+            color: #9ca3af;
+            text-decoration: none;
+            font-family: var(--font-body, sans-serif);
+            font-size: 0.95rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+        
+        .sidebar a.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--color-primary, #3b82f6);
+            border-left: 3px solid var(--color-primary, #3b82f6);
+            font-weight: 600;
+        }
+        
+        /* The container where the modular JS components will inject their views */
+        #content-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="transitops-theme">
+
+    <!-- Persistent Left-Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-logo">TransitOps</div>
+        <a href="index.html">Analytics Dashboard</a>
+        <a href="fleet.html" class="active">Fleet Registry</a>
+        <a href="dispatch.html">Trip Dispatcher</a>
+    </nav>
+
+    <!-- Dynamic Container for JavaScript Injection -->
+    <main id="content-area"></main>
+
+    <!-- JavaScript Hook (Loaded as an ES6 Module) -->
+    <script type="module" src="/js/app.js"></script>
+
+</body>
+</html>
