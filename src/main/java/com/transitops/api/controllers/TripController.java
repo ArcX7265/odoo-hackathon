@@ -2,7 +2,6 @@
 package com.transitops.api.controllers;
 
 import com.transitops.api.models.Trip;
-import com.transitops.api.models.TripStatus;
 import com.transitops.api.services.TripService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +28,7 @@ public class TripController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Trip> updateStatus(@PathVariable Integer id, @RequestParam TripStatus status) {
+    public ResponseEntity<Trip> updateStatus(@PathVariable Integer id, @RequestParam String status) {
         return ResponseEntity.ok(tripService.updateTripStatus(id, status));
     }
 }

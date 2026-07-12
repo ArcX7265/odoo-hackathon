@@ -1,12 +1,15 @@
 package com.transitops.api.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.time.LocalDate;
 
-@Data
 @Entity
 @Table(name = "drivers")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Driver {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,7 +18,7 @@ public class Driver {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "license_number", unique = true, nullable = false)
+    @Column(name = "license_number", nullable = false, unique = true)
     private String licenseNumber;
 
     @Column(name = "license_category")
@@ -30,5 +33,5 @@ public class Driver {
     @Column(name = "safety_score")
     private Integer safetyScore;
 
-    private String status = "Available";
+    private String status = "Available"; // 'Available', 'On Trip', 'Off Duty', 'Suspended'
 }

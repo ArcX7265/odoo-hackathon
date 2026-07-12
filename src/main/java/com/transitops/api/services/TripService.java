@@ -34,16 +34,16 @@ public class TripService {
 
     @Transactional
     public Trip createDraftTrip(Trip trip) {
-        trip.setStatus(TripStatus.Draft);
+        trip.setStatus("Draft");
         return tripRepository.save(trip);
     }
 
     @Transactional
-    public Trip updateTripStatus(Integer id, TripStatus newStatus) {
+    public Trip updateTripStatus(Integer id, String newStatus) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
-        if (newStatus == TripStatus.Dispatched) {
+        if ("Dispatched".equals(newStatus)) {
             validateDispatch(trip);
         }
 

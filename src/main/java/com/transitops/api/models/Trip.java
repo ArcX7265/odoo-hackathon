@@ -1,12 +1,15 @@
 package com.transitops.api.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.math.BigDecimal;
 
-@Data
 @Entity
 @Table(name = "trips")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Trip {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,11 +21,11 @@ public class Trip {
     @Column(nullable = false)
     private String destination;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "driver_id")
     private Driver driver;
 
@@ -38,6 +41,5 @@ public class Trip {
     @Column(name = "fuel_consumed")
     private BigDecimal fuelConsumed;
 
-    @Enumerated(EnumType.STRING)
-    private TripStatus status = TripStatus.Draft;
+    private String status = "Draft"; // 'Draft', 'Dispatched', 'Completed', 'Cancelled'
 }
