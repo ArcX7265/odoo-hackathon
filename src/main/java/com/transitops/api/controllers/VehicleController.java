@@ -11,15 +11,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.web.multipart.MultipartFile;
+import com.transitops.api.models.VehicleDocument;
+import com.transitops.api.repositories.VehicleDocumentRepository;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/vehicles")
 public class VehicleController {
 
     private final VehicleRepository vehicleRepository;
+    private final VehicleDocumentRepository documentRepository;
 
-    public VehicleController(VehicleRepository vehicleRepository) {
+    public VehicleController(VehicleRepository vehicleRepository, VehicleDocumentRepository documentRepository) {
         this.vehicleRepository = vehicleRepository;
+        this.documentRepository = documentRepository;
     }
 
     @GetMapping
@@ -132,5 +141,57 @@ public class VehicleController {
             error.put("message", "Could not delete vehicle. It might be referenced by a trip or log.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    @PostMapping("/{id}/documents")
+    @PreAuthorize("hasRole('FLEET_MANAGER')")
+    public ResponseEntity<?> uploadDocument(@PathVariable Integer id, @RequestParam("file") MultipartFile file) {
+        Optional<Vehicle> vehicleOpt = vehicleRepository.findById(id);
+        if (vehicleOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Vehicle not found"));
+        }
+
+        try {
+            VehicleDocument doc = new VehicleDocument();
+            doc.setVehicle(vehicleOpt.get());
+            doc.setFileName(file.getOriginalFilename());
+            doc.setFileType(file.getContentType());
+            doc.setData(file.getBytes());
+            
+            documentRepository.save(doc);
+            return ResponseEntity.ok(Map.of("message", "Document uploaded successfully", "id", doc.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Could not upload document"));
+        }
+    }
+
+    @GetMapping("/{id}/documents")
+    public ResponseEntity<?> getVehicleDocuments(@PathVariable Integer id) {
+        List<VehicleDocument> docs = documentRepository.findByVehicleId(id.longValue());
+        
+        List<Map<String, Object>> response = docs.stream().map(doc -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", doc.getId());
+            map.put("fileName", doc.getFileName());
+            map.put("fileType", doc.getFileType());
+            map.put("uploadedAt", doc.getUploadedAt());
+            return map;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/documents/{docId}")
+    public ResponseEntity<?> downloadDocument(@PathVariable Long docId) {
+        Optional<VehicleDocument> docOpt = documentRepository.findById(docId);
+        if (docOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Document not found"));
+        }
+        
+        VehicleDocument doc = docOpt.get();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(doc.getFileType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + doc.getFileName() + "\"")
+                .body(doc.getData());
     }
 }

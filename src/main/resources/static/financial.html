@@ -16,6 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -63,6 +64,9 @@
 
                 <!-- User Info & Logout -->
                 <div class="role-switcher-container" style="display: flex; align-items: center; gap: 1rem;">
+                    <button id="theme-toggle" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main);" title="Toggle Theme">
+                        🌙
+                    </button>
                     <span style="color: var(--text-muted);">Financial Analyst</span>
                     <form action="/logout" method="POST" style="margin: 0;">
                         <button type="submit" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Logout</button>
@@ -387,7 +391,10 @@
                     <div class="panel">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                             <h2 style="margin: 0;">Vehicle Financial Performance (ROI & Operational Outlays)</h2>
-                            <button id="btn-export-roi" class="btn btn-primary" style="margin: 0;">Export ROI CSV</button>
+                            <div style="display: flex; gap: 1rem;">
+                                <button id="btn-export-pdf" class="btn btn-secondary" style="margin: 0;">Export to PDF</button>
+                                <button id="btn-export-roi" class="btn btn-primary" style="margin: 0;">Export ROI CSV</button>
+                            </div>
                         </div>
                         <p class="panel-desc">Calculated Vehicle ROI based on: Revenue (Completed trips * $3.00/mile) vs Operational Cost (Maintenance + Fuel) against vehicle Acquisition Cost.</p>
                         

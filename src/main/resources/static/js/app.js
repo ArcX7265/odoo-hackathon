@@ -214,6 +214,45 @@ const App = {
             const analyticsDenied = document.getElementById("analytics-access-denied");
             if (expensesDenied) expensesDenied.style.display = "none";
             if (analyticsDenied) analyticsDenied.style.display = "none";
+
+            // Render Fleet Status Chart if on fleet dashboard
+            const fleetCtx = document.getElementById('fleetStatusChart');
+            if (fleetCtx) {
+                if (App.state.fleetChartInstance) {
+                    App.state.fleetChartInstance.destroy();
+                }
+                
+                App.state.fleetChartInstance = new Chart(fleetCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Available', 'On Trip', 'In Maintenance'],
+                        datasets: [{
+                            data: [
+                                kpis.availableVehicles || 0,
+                                kpis.activeTrips || 0,
+                                kpis.vehiclesInMaintenance || 0
+                            ],
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)', // Green
+                                'rgba(59, 130, 246, 0.8)', // Blue
+                                'rgba(249, 115, 22, 0.8)'  // Orange
+                            ],
+                            borderColor: 'var(--bg-panel)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: 'var(--text-primary)' }
+                            }
+                        }
+                    }
+                });
+            }
             
         } catch (err) {
             console.error("Error loading Dashboard KPIs:", err);
@@ -601,6 +640,52 @@ const App = {
         if (btnExportRoi) {
             btnExportRoi.addEventListener("click", () => {
                 App.exportRoiCsv();
+            });
+        }
+        
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById("theme-toggle");
+        if (themeToggle) {
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "light") {
+                document.documentElement.setAttribute("data-theme", "light");
+                themeToggle.textContent = "☀️";
+            }
+            
+            themeToggle.addEventListener("click", () => {
+                const currentTheme = document.documentElement.getAttribute("data-theme");
+                if (currentTheme === "light") {
+                    document.documentElement.removeAttribute("data-theme");
+                    localStorage.setItem("theme", "dark");
+                    themeToggle.textContent = "🌙";
+                } else {
+                    document.documentElement.setAttribute("data-theme", "light");
+                    localStorage.setItem("theme", "light");
+                    themeToggle.textContent = "☀️";
+                }
+            });
+        }
+        
+        const btnExportPdf = document.getElementById("btn-export-pdf");
+        if (btnExportPdf) {
+            btnExportPdf.addEventListener("click", () => {
+                const element = document.getElementById("view-analytics");
+                const opt = {
+                    margin:       0.5,
+                    filename:     'financial_analytics.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+                
+                // Hide buttons during export
+                const buttons = document.querySelectorAll('#btn-export-pdf, #btn-export-roi');
+                buttons.forEach(b => b.style.display = 'none');
+                
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Restore buttons
+                    buttons.forEach(b => b.style.display = 'inline-block');
+                });
             });
         }
 

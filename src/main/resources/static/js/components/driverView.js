@@ -33,6 +33,13 @@ export const DriverView = {
                     </div>
                 </div>
 
+                <div class="to-card" style="margin-bottom: 2rem; padding: 1rem;">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Driver Safety Overview</h3>
+                    <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="driverSafetyChart"></canvas>
+                    </div>
+                </div>
+
                 <div class="to-grid" id="drivers-grid">
                     <div style="grid-column: 1 / -1; text-align: center; color: #9ca3af; padding: 3rem 0;">
                         Loading driver profiles...
@@ -243,6 +250,54 @@ export const DriverView = {
                                 }
                             }
                         });
+                    });
+                }
+                
+                // Render Chart
+                const chartCtx = container.querySelector('#driverSafetyChart');
+                if (chartCtx) {
+                    if (appState.driverChartInstance) {
+                        appState.driverChartInstance.destroy();
+                    }
+                    
+                    const excellentCount = drivers.filter(d => (d.safetyScore || 0) >= 90).length;
+                    const goodCount = drivers.filter(d => (d.safetyScore || 0) >= 75 && (d.safetyScore || 0) < 90).length;
+                    const avgCount = drivers.filter(d => (d.safetyScore || 0) >= 50 && (d.safetyScore || 0) < 75).length;
+                    const poorCount = drivers.filter(d => (d.safetyScore || 0) < 50).length;
+                    
+                    appState.driverChartInstance = new Chart(chartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Excellent (90-100)', 'Good (75-89)', 'Average (50-74)', 'Poor (<50)'],
+                            datasets: [{
+                                label: 'Number of Drivers',
+                                data: [excellentCount, goodCount, avgCount, poorCount],
+                                backgroundColor: [
+                                    'rgba(16, 185, 129, 0.8)', // Success
+                                    'rgba(59, 130, 246, 0.8)', // Primary
+                                    'rgba(245, 158, 11, 0.8)', // Warning/Accent
+                                    'rgba(239, 68, 68, 0.8)'   // Danger
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1, color: '#94a3b8' },
+                                    grid: { color: '#334155' }
+                                },
+                                x: {
+                                    ticks: { color: '#94a3b8' },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
                     });
                 }
             } catch (err) {

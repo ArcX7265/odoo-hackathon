@@ -24,10 +24,30 @@ export const FleetView = {
                 </div>
 
                 <div class="to-card" style="margin-bottom: 2rem; padding: 1rem;">
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div class="to-search-bar" style="flex-grow: 1; max-width: none;">
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <div class="to-search-bar" style="flex-grow: 1; max-width: none; min-width: 250px;">
                             <input class="to-input" type="text" id="vehicle-search" placeholder="Search by Registration Number or Model...">
                         </div>
+                        <select class="to-select" id="filter-type" style="width: auto;">
+                            <option value="">All Types</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Van">Van</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Car">Car</option>
+                        </select>
+                        <select class="to-select" id="filter-status" style="width: auto;">
+                            <option value="">All Statuses</option>
+                            <option value="Available">Available</option>
+                            <option value="On Trip">On Trip</option>
+                            <option value="In Shop">In Shop</option>
+                            <option value="Retired">Retired</option>
+                        </select>
+                        <select class="to-select" id="sort-by" style="width: auto;">
+                            <option value="reg-asc">Reg (A-Z)</option>
+                            <option value="reg-desc">Reg (Z-A)</option>
+                            <option value="cap-desc">Capacity (High-Low)</option>
+                            <option value="odo-asc">Odometer (Low-High)</option>
+                        </select>
                         <button id="btn-search" class="to-btn to-btn-secondary">Search</button>
                         <button id="btn-clear-search" class="to-btn to-btn-secondary">Reset</button>
                     </div>
@@ -115,6 +135,41 @@ export const FleetView = {
                         </form>
                     </div>
                 </div>
+
+                <!-- Documents Modal -->
+                <div class="to-modal-overlay" id="docs-modal">
+                    <div class="to-modal" style="max-width: 600px; width: 100%;">
+                        <div class="to-modal-header">
+                            <h3 class="to-modal-title">Vehicle Documents: <span id="docs-veh-reg"></span></h3>
+                            <button class="to-modal-close" id="modal-close-docs">&times;</button>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <form id="upload-doc-form" style="display: flex; gap: 1rem; align-items: flex-end;">
+                                <input type="hidden" id="docs-veh-id">
+                                <div class="to-form-group" style="flex-grow: 1; margin: 0;">
+                                    <label class="to-label">Upload New Document</label>
+                                    <input class="to-input" type="file" id="doc-file" required>
+                                </div>
+                                <button type="submit" class="to-btn to-btn-primary">Upload</button>
+                            </form>
+                        </div>
+                        <div class="to-table-container">
+                            <table class="to-table">
+                                <thead>
+                                    <tr>
+                                        <th>Document Name</th>
+                                        <th>Type</th>
+                                        <th>Uploaded At</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="docs-tbody">
+                                    <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -128,6 +183,77 @@ export const FleetView = {
         const cancelBtn = container.querySelector('#btn-cancel');
         const closeBtn = container.querySelector('#modal-close');
         const form = container.querySelector('#add-vehicle-form');
+        
+        // Document Modal Elements
+        const docsModal = container.querySelector('#docs-modal');
+        const docsCloseBtn = container.querySelector('#modal-close-docs');
+        const docsForm = container.querySelector('#upload-doc-form');
+        const docsTbody = container.querySelector('#docs-tbody');
+
+        // Document Handlers
+        const loadDocuments = async (vehicleId) => {
+            try {
+                docsTbody.innerHTML = `<tr><td colspan="4" class="text-center">Loading...</td></tr>`;
+                const res = await fetch(`/api/vehicles/${vehicleId}/documents`);
+                if (!res.ok) throw new Error('Failed to load docs');
+                const docs = await res.json();
+                
+                if (docs.length === 0) {
+                    docsTbody.innerHTML = `<tr><td colspan="4" class="text-center">No documents uploaded</td></tr>`;
+                    return;
+                }
+                
+                docsTbody.innerHTML = docs.map(doc => {
+                    const date = new Date(doc.uploadedAt).toLocaleDateString();
+                    return `
+                        <tr>
+                            <td>${doc.fileName}</td>
+                            <td>${doc.fileType || 'Unknown'}</td>
+                            <td>${date}</td>
+                            <td>
+                                <a href="/api/vehicles/documents/${doc.id}" download class="to-btn to-btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Download</a>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error(err);
+                docsTbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color:var(--color-danger)">Error loading docs</td></tr>`;
+            }
+        };
+
+        docsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const vehId = container.querySelector('#docs-veh-id').value;
+            const fileInput = container.querySelector('#doc-file');
+            
+            if (!fileInput.files[0]) return;
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const res = await fetch(`/api/vehicles/${vehId}/documents`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    showToast('Document uploaded successfully', 'success');
+                    fileInput.value = '';
+                    loadDocuments(vehId);
+                } else {
+                    showToast('Failed to upload document', 'danger');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Network error while uploading', 'danger');
+            }
+        });
+
+        if (docsCloseBtn) {
+            docsCloseBtn.addEventListener('click', () => docsModal.classList.remove('active'));
+        }
 
         // Render helper function for badges
         const getStatusBadge = (status) => {
@@ -162,8 +288,31 @@ export const FleetView = {
 
                 const vehicles = await response.json();
                 
-                if (vehicles.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isManager ? 8 : 7}" style="text-align: center; color: #9ca3af;">No vehicles found</td></tr>`;
+                // Client-side filtering
+                const filterType = container.querySelector('#filter-type').value;
+                const filterStatus = container.querySelector('#filter-status').value;
+                const sortBy = container.querySelector('#sort-by').value;
+                
+                let filtered = vehicles;
+                
+                if (filterType) {
+                    filtered = filtered.filter(v => v.type === filterType);
+                }
+                if (filterStatus) {
+                    filtered = filtered.filter(v => v.status === filterStatus);
+                }
+                
+                // Client-side sorting
+                filtered.sort((a, b) => {
+                    if (sortBy === 'reg-asc') return a.registrationNumber.localeCompare(b.registrationNumber);
+                    if (sortBy === 'reg-desc') return b.registrationNumber.localeCompare(a.registrationNumber);
+                    if (sortBy === 'cap-desc') return (b.maxLoadCapacity || 0) - (a.maxLoadCapacity || 0);
+                    if (sortBy === 'odo-asc') return (a.odometer || 0) - (b.odometer || 0);
+                    return 0;
+                });
+                
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${isManager ? 8 : 7}" style="text-align: center; color: #9ca3af;">No vehicles found matching criteria</td></tr>`;
                     return;
                 }
 
@@ -173,7 +322,7 @@ export const FleetView = {
                     currency: 'USD'
                 });
 
-                tbody.innerHTML = vehicles.map(v => `
+                tbody.innerHTML = filtered.map(v => `
                     <tr>
                         <td style="font-weight: 600; color: #ffffff;">${v.registrationNumber}</td>
                         <td>${v.model || 'N/A'}</td>
@@ -184,16 +333,32 @@ export const FleetView = {
                         <td>${getStatusBadge(v.status)}</td>
                         ${isManager ? `
                             <td>
-                                <button class="to-btn to-btn-danger btn-delete-veh" data-id="${v.id}" data-reg="${v.registrationNumber}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                                    Delete
-                                </button>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="to-btn to-btn-secondary btn-docs-veh" data-id="${v.id}" data-reg="${v.registrationNumber}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                        Docs
+                                    </button>
+                                    <button class="to-btn to-btn-danger btn-delete-veh" data-id="${v.id}" data-reg="${v.registrationNumber}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                        Delete
+                                    </button>
+                                </div>
                             </td>
                         ` : ''}
                     </tr>
                 `).join('');
 
-                // Hook up delete buttons
+                // Hook up buttons
                 if (isManager) {
+                    tbody.querySelectorAll('.btn-docs-veh').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const id = btn.getAttribute('data-id');
+                            const reg = btn.getAttribute('data-reg');
+                            container.querySelector('#docs-veh-id').value = id;
+                            container.querySelector('#docs-veh-reg').textContent = reg;
+                            docsModal.classList.add('active');
+                            loadDocuments(id);
+                        });
+                    });
+
                     tbody.querySelectorAll('.btn-delete-veh').forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const id = btn.getAttribute('data-id');
@@ -242,15 +407,22 @@ export const FleetView = {
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
-        // Search triggering
+        // Search & Filter triggering
         searchBtn.addEventListener('click', () => loadVehicles(searchInput.value));
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 loadVehicles(searchInput.value);
             }
         });
+        container.querySelector('#filter-type').addEventListener('change', () => loadVehicles(searchInput.value));
+        container.querySelector('#filter-status').addEventListener('change', () => loadVehicles(searchInput.value));
+        container.querySelector('#sort-by').addEventListener('change', () => loadVehicles(searchInput.value));
+        
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
+            container.querySelector('#filter-type').value = '';
+            container.querySelector('#filter-status').value = '';
+            container.querySelector('#sort-by').value = 'reg-asc';
             loadVehicles();
         });
 

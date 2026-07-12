@@ -86,7 +86,8 @@ function switchView(viewId) {
         "dashboard": "Dashboard Summary",
         "maintenance": "Maintenance Portal",
         "ledgers": "Fuel & Expense Ledgers",
-        "analytics": "Analytics Reports"
+        "analytics": "Analytics Reports",
+        "vehicles": "Fleet Directory"
     };
     
     const viewTitleEl = document.getElementById("view-title");
@@ -103,6 +104,8 @@ function switchView(viewId) {
         loadLedgerData();
     } else if (viewId === "analytics" && document.getElementById("analytics-grid-body")) {
         loadAnalyticsReport();
+    } else if (viewId === "vehicles" && document.getElementById("master-vehicles-table")) {
+        loadMasterVehicles();
     }
 }
 
@@ -571,5 +574,120 @@ function setupForms() {
             tabContentExpense.classList.remove("hidden");
             tabContentFuel.classList.add("hidden");
         });
+    }
+
+    // Modal bindings for Add Vehicle
+    const btnAddVehicle = document.getElementById("btn-add-vehicle");
+    const modalVehicle = document.getElementById("add-vehicle-modal");
+    const btnCloseModal = document.getElementById("btn-close-vehicle-modal");
+
+    if (btnAddVehicle && modalVehicle) {
+        btnAddVehicle.addEventListener("click", () => {
+            modalVehicle.classList.remove("hidden");
+            document.getElementById("veh-error-msg").style.display = "none";
+        });
+        
+        btnCloseModal.addEventListener("click", () => {
+            modalVehicle.classList.add("hidden");
+        });
+        
+        modalVehicle.addEventListener("click", (e) => {
+            if (e.target === modalVehicle) {
+                modalVehicle.classList.add("hidden");
+            }
+        });
+    }
+
+    // Add Vehicle Form Submission
+    const addVehicleForm = document.getElementById("add-vehicle-form");
+    if (addVehicleForm) {
+        addVehicleForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = addVehicleForm.querySelector("button[type='submit']");
+            const originalText = btn.textContent;
+            btn.textContent = "Saving...";
+            btn.disabled = true;
+            
+            const errorMsg = document.getElementById("veh-error-msg");
+            errorMsg.style.display = "none";
+
+            const payload = {
+                registrationNumber: document.getElementById("veh-reg").value,
+                model: document.getElementById("veh-model").value,
+                type: document.getElementById("veh-type").value,
+                status: document.getElementById("veh-status").value,
+                maxLoadCapacity: document.getElementById("veh-load").value ? parseInt(document.getElementById("veh-load").value) : null,
+                odometer: document.getElementById("veh-odo").value ? parseInt(document.getElementById("veh-odo").value) : 0,
+                acquisitionCost: document.getElementById("veh-cost").value ? parseFloat(document.getElementById("veh-cost").value) : null
+            };
+
+            try {
+                const result = await fetchWithAuth("/api/vehicles", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                
+                // Refresh list and close modal
+                addVehicleForm.reset();
+                modalVehicle.classList.add("hidden");
+                loadMasterVehicles();
+                loadVehiclesDropdowns(); // Refresh dropdowns across app
+            } catch (err) {
+                errorMsg.textContent = "Error: " + err.message;
+                errorMsg.style.display = "block";
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+// -------------------------------------------------------------
+// MASTER VEHICLES LIST LOGIC
+// -------------------------------------------------------------
+async function loadMasterVehicles() {
+    const tbody = document.querySelector("#master-vehicles-table tbody");
+    if (!tbody) return;
+
+    try {
+        const vehicles = await fetchWithAuth("/api/vehicles");
+        tbody.innerHTML = "";
+        
+        if (vehicles.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No vehicles found in fleet.</td></tr>';
+            return;
+        }
+
+        vehicles.forEach(veh => {
+            const tr = document.createElement("tr");
+            
+            // Status badge logic
+            let statusBadge = "neutral";
+            if (veh.status === "Available") statusBadge = "success";
+            if (veh.status === "On Trip") statusBadge = "warning";
+            if (veh.status === "In Shop") statusBadge = "danger";
+            if (veh.status === "Retired") statusBadge = "dark";
+
+            const loadText = veh.maxLoadCapacity ? veh.maxLoadCapacity.toLocaleString() : "N/A";
+            const costText = veh.acquisitionCost ? `$${veh.acquisitionCost.toLocaleString()}` : "N/A";
+            
+            tr.innerHTML = `
+                <td><strong>${veh.registrationNumber}</strong></td>
+                <td>${veh.model || "Unknown"}</td>
+                <td>${veh.type}</td>
+                <td>${loadText}</td>
+                <td>${veh.odometer ? veh.odometer.toLocaleString() : 0}</td>
+                <td>${costText}</td>
+                <td><span class="badge ${statusBadge}">${veh.status}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        if (err.status === 403 || err.status === 401) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--danger-color)">Access Denied. You do not have permission to view vehicles.</td></tr>`;
+        } else {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--danger-color)">Error loading vehicles: ${err.message}</td></tr>`;
+        }
     }
 }

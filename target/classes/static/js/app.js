@@ -1,33 +1,18 @@
-// TransitOps Orchestrator and Route Manager
-import { AuthView } from './components/authView.js';
+// TransitOps Orchestrator and Route Manager (ES Module)
 import { FleetView } from './components/fleetView.js';
 import { DriverView } from './components/driverView.js';
 
+// Global App State
 const App = {
     state: {
         user: null, // { email, role }
-        currentView: 'auth' // 'auth', 'fleet', 'driver'
+        currentView: 'dashboard',
+        roiChartInstance: null
     },
 
     init: async () => {
         // Apply body class for base theme mapping
         document.body.classList.add('transitops-theme');
-
-        // Dynamically load the style sheet if not already added to document head
-        if (!document.querySelector('link[href*="styles.css"]')) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = '/css/styles.css';
-            document.head.appendChild(link);
-        }
-
-        // Add toast container to body
-        if (!document.getElementById('to-toast-container')) {
-            const container = document.createElement('div');
-            container.id = 'to-toast-container';
-            container.className = 'to-toast-container';
-            document.body.appendChild(container);
-        }
 
         // Check if user has an active session
         try {
@@ -35,23 +20,115 @@ const App = {
             if (res.ok) {
                 const userData = await res.json();
                 App.state.user = userData;
-                App.state.currentView = 'fleet'; // default view when logged in
             } else {
-                App.state.user = null;
-                App.state.currentView = 'auth';
+                // If not logged in, redirect to login page
+                window.location.href = '/login.html';
+                return;
             }
         } catch (err) {
             console.error('Session check failed:', err);
-            App.state.user = null;
-            App.state.currentView = 'auth';
+            window.location.href = '/login.html';
+            return;
         }
 
-        App.render();
+        // Initialize navigation items
+        const navItems = document.querySelectorAll(".nav-item");
+        navItems.forEach(item => {
+            item.addEventListener("click", () => {
+                navItems.forEach(i => i.classList.remove("active"));
+                item.classList.add("active");
+                
+                const viewId = item.getAttribute("data-view");
+                App.switchView(viewId);
+            });
+        });
+
+        // Form Setup and Tab bindings
+        App.setupForms();
+        
+        // Set default dates to today
+        const today = new Date().toISOString().split('T')[0];
+        const maintDate = document.getElementById("maint-date");
+        if (maintDate) maintDate.value = today;
+        
+        const fuelDate = document.getElementById("fuel-date");
+        if (fuelDate) fuelDate.value = today;
+        
+        const expDate = document.getElementById("exp-date");
+        if (expDate) expDate.value = today;
+
+        // Load initial data
+        if (document.getElementById("maint-vehicle") || document.getElementById("fuel-vehicle")) {
+            App.loadVehiclesDropdowns();
+        }
+
+        // Load default dashboard
+        App.switchView("dashboard");
+    },
+
+    switchView: async (viewId) => {
+        App.state.currentView = viewId;
+
+        // Hide all views
+        const views = document.querySelectorAll(".view-section");
+        views.forEach(v => v.classList.remove("active"));
+        
+        // Show target view
+        const targetView = document.getElementById(`view-${viewId}`);
+        if (targetView) {
+            targetView.classList.add("active");
+        }
+
+        // Set view header title
+        const viewTitleMap = {
+            "dashboard": "Dashboard Summary",
+            "maintenance": "Maintenance Portal",
+            "ledgers": "Fuel & Expense Ledgers",
+            "analytics": "Analytics Reports",
+            "fleet-registry": "Fleet Registry",
+            "driver-management": "Driver Profiles"
+        };
+        
+        const viewTitleEl = document.getElementById("view-title");
+        if (viewTitleEl) {
+            viewTitleEl.textContent = viewTitleMap[viewId] || "Control Center";
+        }
+
+        // Load specific view data / render components
+        if (viewId === "dashboard" && document.getElementById("kpi-active-vehicles")) {
+            App.loadKpis();
+        } else if (viewId === "maintenance" && document.getElementById("maintenance-ledger-body")) {
+            App.loadMaintenanceLedger();
+        } else if (viewId === "ledgers" && document.getElementById("fuel-ledger-body")) {
+            App.loadLedgerData();
+        } else if (viewId === "analytics" && document.getElementById("analytics-grid-body")) {
+            App.loadAnalyticsReport();
+        } else if (viewId === "fleet-registry") {
+            const mount = document.getElementById("fleet-registry-mount");
+            if (mount) {
+                // Render modular FleetView component
+                await FleetView.render(mount, App.state, App.showToast);
+            }
+        } else if (viewId === "driver-management") {
+            const mount = document.getElementById("driver-management-mount");
+            if (mount) {
+                // Render modular DriverView component
+                await DriverView.render(mount, App.state, App.showToast);
+            }
+        }
     },
 
     showToast: (message, type = 'info') => {
-        const container = document.getElementById('to-toast-container');
-        if (!container) return;
+        // Safe alert fallback or simple log
+        console.log(`[Toast ${type}] ${message}`);
+        // To make it pretty we can create a dynamic toast on the body
+        let container = document.getElementById('to-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'to-toast-container';
+            container.className = 'to-toast-container';
+            document.body.appendChild(container);
+        }
 
         const toast = document.createElement('div');
         toast.className = `to-toast to-toast-${type}`;
@@ -63,181 +140,722 @@ const App = {
         else icon = 'ℹ';
 
         toast.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; color: #fff;">
                 <span style="font-weight: 700; font-size: 1.1rem;">${icon}</span>
                 <span>${message}</span>
             </div>
-            <span style="cursor: pointer; margin-left: 1rem; opacity: 0.5;" onclick="this.parentElement.remove()">&times;</span>
+        `;
+        toast.style.cssText = `
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            animation: slideIn 0.3s ease;
         `;
 
         container.appendChild(toast);
-
-        // Auto remove toast
         setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
             setTimeout(() => toast.remove(), 300);
         }, 4000);
     },
 
-    // Handles quick-swap in the header
-    handleQuickSwap: async (newRole) => {
-        let email = '';
-        if (newRole === 'Fleet Manager') email = 'manager@transitops.com';
-        else if (newRole === 'Driver') email = 'driver@transitops.com';
-        else if (newRole === 'Safety Officer') email = 'safety@transitops.com';
-        else if (newRole === 'Financial Analyst') email = 'finance@transitops.com';
-
+    // Load Dashboard KPIs
+    loadKpis: async () => {
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email, password: 'password' })
+            const vType = document.getElementById("filter-vehicle-type") ? document.getElementById("filter-vehicle-type").value : "";
+            const vStatus = document.getElementById("filter-vehicle-status") ? document.getElementById("filter-vehicle-status").value : "";
+            const queryParams = new URLSearchParams();
+            if (vType) queryParams.append("vehicleType", vType);
+            if (vStatus) queryParams.append("status", vStatus);
+
+            const res = await fetch(`/api/analytics/kpi-summary?${queryParams.toString()}`);
+            if (!res.ok) throw new Error("Failed to load KPIs");
+            const kpis = await res.json();
+            
+            document.getElementById("kpi-active-vehicles").textContent = kpis.activeVehicles;
+            document.getElementById("kpi-available-vehicles").textContent = kpis.availableVehicles;
+            document.getElementById("kpi-in-maintenance").textContent = kpis.vehiclesInMaintenance;
+            document.getElementById("kpi-active-trips").textContent = kpis.activeTrips;
+            document.getElementById("kpi-fleet-utilization").textContent = `${kpis.fleetUtilization}%`;
+
+            const pendingTripsEl = document.getElementById("kpi-pending-trips");
+            if (pendingTripsEl) pendingTripsEl.textContent = kpis.pendingTrips !== undefined ? kpis.pendingTrips : "-";
+            
+            const driversOnDutyEl = document.getElementById("kpi-drivers-on-duty");
+            if (driversOnDutyEl) driversOnDutyEl.textContent = kpis.driversOnDuty !== undefined ? kpis.driversOnDuty : "-";
+
+            // Fetch ROI details to show summary stats in the overview panel
+            const roiRes = await fetch("/api/analytics/vehicle-roi");
+            if (roiRes.ok) {
+                const roiList = await roiRes.json();
+                let totalAcq = 0;
+                let totalOps = 0;
+                roiList.forEach(item => {
+                    totalAcq += item.acquisitionCost || 0;
+                    totalOps += item.totalOperationalCost || 0;
+                });
+                
+                const totalAcqEl = document.getElementById("stats-total-acq");
+                const totalOpsEl = document.getElementById("stats-total-ops");
+                
+                if (totalAcqEl) totalAcqEl.textContent = `$${totalAcq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                if (totalOpsEl) totalOpsEl.textContent = `$${totalOps.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+            
+            // Hide access denied covers (if role changed back)
+            const expensesDenied = document.getElementById("expenses-access-denied");
+            const analyticsDenied = document.getElementById("analytics-access-denied");
+            if (expensesDenied) expensesDenied.style.display = "none";
+            if (analyticsDenied) analyticsDenied.style.display = "none";
+
+            // Render Fleet Status Chart if on fleet dashboard
+            const fleetCtx = document.getElementById('fleetStatusChart');
+            if (fleetCtx) {
+                if (App.state.fleetChartInstance) {
+                    App.state.fleetChartInstance.destroy();
+                }
+                
+                App.state.fleetChartInstance = new Chart(fleetCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Available', 'On Trip', 'In Maintenance'],
+                        datasets: [{
+                            data: [
+                                kpis.availableVehicles || 0,
+                                kpis.activeTrips || 0,
+                                kpis.vehiclesInMaintenance || 0
+                            ],
+                            backgroundColor: [
+                                'rgba(16, 185, 129, 0.8)', // Green
+                                'rgba(59, 130, 246, 0.8)', // Blue
+                                'rgba(249, 115, 22, 0.8)'  // Orange
+                            ],
+                            borderColor: 'var(--bg-panel)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: 'var(--text-primary)' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+        } catch (err) {
+            console.error("Error loading Dashboard KPIs:", err);
+        }
+    },
+
+    // Populate Vehicle dropdowns
+    loadVehiclesDropdowns: async () => {
+        try {
+            const res = await fetch("/api/vehicles");
+            if (!res.ok) throw new Error("Failed to load vehicles");
+            const vehicles = await res.json();
+
+            const maintSelect = document.getElementById("maint-vehicle");
+            const fuelSelect = document.getElementById("fuel-vehicle");
+            const expSelect = document.getElementById("exp-vehicle");
+
+            // Clear existing options
+            if (maintSelect) maintSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+            if (fuelSelect) fuelSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+            if (expSelect) expSelect.innerHTML = '<option value="">Choose a vehicle...</option>';
+
+            vehicles.forEach(v => {
+                const optionText = `${v.registrationNumber} - ${v.model} (${v.status})`;
+                
+                if (maintSelect) {
+                    const opt1 = document.createElement("option");
+                    opt1.value = v.id;
+                    opt1.textContent = optionText;
+                    maintSelect.appendChild(opt1);
+                }
+
+                if (fuelSelect) {
+                    const opt2 = document.createElement("option");
+                    opt2.value = v.id;
+                    opt2.textContent = optionText;
+                    fuelSelect.appendChild(opt2);
+                }
+
+                if (expSelect) {
+                    const opt3 = document.createElement("option");
+                    opt3.value = v.id;
+                    opt3.textContent = optionText;
+                    expSelect.appendChild(opt3);
+                }
+            });
+        } catch (err) {
+            console.error("Failed to load vehicles dropdowns:", err);
+        }
+    },
+
+    // Maintenance Ledger
+    loadMaintenanceLedger: async () => {
+        try {
+            const res = await fetch("/api/maintenance");
+            if (!res.ok) throw new Error("Failed to load maintenance");
+            const logs = await res.json();
+            const tbody = document.getElementById("maintenance-ledger-body");
+            if (!tbody) return;
+            
+            tbody.innerHTML = "";
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No maintenance logs found</td></tr>';
+                return;
+            }
+
+            logs.forEach(log => {
+                const tr = document.createElement("tr");
+                
+                const isClosed = log.status.toLowerCase() === "closed";
+                const badgeClass = isClosed ? "badge-closed" : "badge-open";
+                const statusLabel = isClosed ? "Resolved" : "Active";
+                
+                const actionButton = isClosed 
+                    ? `<span class="badge badge-closed">Resolved</span>`
+                    : `<button class="btn btn-sm btn-outline-orange" data-id="${log.id}">Mark Resolved</button>`;
+
+                tr.innerHTML = `
+                    <td class="text-bold">${log.vehicle ? log.vehicle.registrationNumber : 'Unknown'}</td>
+                    <td>${log.description}</td>
+                    <td>$${log.cost.toFixed(2)}</td>
+                    <td>${log.logDate}</td>
+                    <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                    <td>${actionButton}</td>
+                `;
+                tbody.appendChild(tr);
+
+                // Add event listener to resolve button
+                if (!isClosed) {
+                    const btn = tr.querySelector("button");
+                    btn.addEventListener("click", () => App.resolveMaintenanceLog(log.id));
+                }
+            });
+        } catch (err) {
+            console.error("Failed to load maintenance ledger:", err);
+        }
+    },
+
+    // Resolve Maintenance
+    resolveMaintenanceLog: async (id) => {
+        try {
+            const res = await fetch(`/api/maintenance/${id}/resolve`, {
+                method: "PUT"
+            });
+            if (!res.ok) throw new Error("Failed to resolve maintenance");
+            
+            await App.loadMaintenanceLedger();
+            await App.loadVehiclesDropdowns();
+        } catch (err) {
+            console.error("Failed to resolve maintenance log:", err);
+            alert("Failed to resolve maintenance.");
+        }
+    },
+
+    // Tabbed Ledgers
+    loadLedgerData: async () => {
+        const expensesOverlay = document.getElementById("expenses-access-denied");
+        
+        try {
+            // Load Fuel logs
+            const fuelRes = await fetch("/api/fuel-logs");
+            if (fuelRes.ok) {
+                const fuelLogs = await fuelRes.json();
+                const fuelBody = document.getElementById("fuel-ledger-body");
+                
+                if (fuelBody) {
+                    fuelBody.innerHTML = "";
+                    if (fuelLogs.length === 0) {
+                        fuelBody.innerHTML = '<tr><td colspan="5" class="text-center">No fuel refill logs found</td></tr>';
+                    } else {
+                        fuelLogs.forEach(log => {
+                            const tr = document.createElement("tr");
+                            const pricePerLiter = log.liters > 0 ? (log.cost / log.liters).toFixed(2) : '0.00';
+                            tr.innerHTML = `
+                                <td class="text-bold">${log.vehicle ? log.vehicle.registrationNumber : 'Unknown'}</td>
+                                <td>${log.liters.toFixed(2)} L</td>
+                                <td>$${log.cost.toFixed(2)}</td>
+                                <td>$${pricePerLiter}/L</td>
+                                <td>${log.logDate}</td>
+                            `;
+                            fuelBody.appendChild(tr);
+                        });
+                    }
+                }
+            }
+
+            // Hide overlay in case it was shown before
+            if (expensesOverlay) expensesOverlay.style.display = "none";
+
+            // Load Expenses (Role restricted)
+            const expRes = await fetch("/api/expenses");
+            if (expRes.status === 403 || expRes.status === 401) {
+                if (expensesOverlay) expensesOverlay.style.display = "flex";
+                return;
+            }
+            if (expRes.ok) {
+                const expenses = await expRes.json();
+                const expBody = document.getElementById("expense-ledger-body");
+                
+                if (expBody) {
+                    expBody.innerHTML = "";
+                    if (expenses.length === 0) {
+                        expBody.innerHTML = '<tr><td colspan="4" class="text-center">No operational expenses found</td></tr>';
+                    } else {
+                        expenses.forEach(e => {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                                <td class="text-bold">${e.vehicle ? e.vehicle.registrationNumber : 'Unknown'}</td>
+                                <td><span class="badge badge-trip">${e.type}</span></td>
+                                <td>$${e.amount.toFixed(2)}</td>
+                                <td>${e.date}</td>
+                            `;
+                            expBody.appendChild(tr);
+                        });
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.error("Access issue in Ledger Data:", err);
+        }
+    },
+
+    // Financial ROI Analytics
+    loadAnalyticsReport: async () => {
+        const analyticsOverlay = document.getElementById("analytics-access-denied");
+        
+        try {
+            const res = await fetch("/api/analytics/vehicle-roi");
+            if (res.status === 403 || res.status === 401) {
+                if (analyticsOverlay) analyticsOverlay.style.display = "flex";
+                return;
+            }
+            if (!res.ok) throw new Error("Failed to load ROI report");
+            const roiList = await res.json();
+            if (analyticsOverlay) analyticsOverlay.style.display = "none";
+
+            const grid = document.getElementById("analytics-grid-body");
+            if (!grid) return;
+            
+            grid.innerHTML = "";
+
+            if (roiList.length === 0) {
+                grid.innerHTML = '<div class="text-center w-100 pad-20">No vehicle data available.</div>';
+                return;
+            }
+
+            roiList.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "analytics-card";
+                
+                const roiVal = item.roi || 0.0;
+                const isPositive = roiVal >= 0;
+                const badgeClass = isPositive ? "roi-positive" : "roi-negative";
+                const prefix = isPositive ? "+" : "";
+                
+                // ROI Bar Color
+                const barColor = isPositive ? "var(--accent-green)" : "var(--accent-red)";
+                const barWidth = Math.max(0, Math.min(100, Math.abs(roiVal)));
+
+                card.innerHTML = `
+                    <div class="analytics-card-header">
+                        <div class="vehicle-info">
+                            <h3>${item.registrationNumber}</h3>
+                            <span>${item.model} • ${item.type}</span>
+                        </div>
+                        <div class="roi-badge ${badgeClass}">
+                            ROI: ${prefix}${roiVal.toFixed(2)}%
+                        </div>
+                    </div>
+                    <div class="analytics-metrics">
+                        <div class="metric-row">
+                            <span class="metric-name">Acquisition Cost</span>
+                            <span class="metric-value">$${item.acquisitionCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Operational Cost</span>
+                            <span class="metric-value">$${item.totalOperationalCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name"> - Maintenance Cost</span>
+                            <span class="metric-value">$${item.totalMaintenanceCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name"> - Fuel Cost</span>
+                            <span class="metric-value">$${item.totalFuelCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Calculated Revenue</span>
+                            <span class="metric-value">$${item.revenue.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="roi-bar-container">
+                        <div class="roi-bar" style="width: ${barWidth}%; background-color: ${barColor};"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                App.state.user = data;
-                App.showToast(`Swapped to: ${newRole}`, 'success');
-                App.render();
-            } else {
-                App.showToast('Failed to swap personas', 'danger');
-            }
-        } catch (err) {
-            console.error(err);
-            App.showToast('Network error during persona swap', 'danger');
-        }
-    },
-
-    handleLogout: async () => {
-        try {
-            const res = await fetch('/api/auth/logout', { method: 'POST' });
-            if (res.ok) {
-                App.state.user = null;
-                App.state.currentView = 'auth';
-                App.showToast('Signed out successfully', 'success');
-                App.render();
-            } else {
-                App.showToast('Logout failed', 'danger');
-            }
-        } catch (err) {
-            console.error(err);
-            App.showToast('Network error on logout', 'danger');
-        }
-    },
-
-    render: () => {
-        const contentArea = document.getElementById('content-area');
-        if (!contentArea) {
-            // Not on the SPA page, might be on Dispatch.html or Analytics.html
-            return;
-        }
-
-        // If user is not authenticated, load the Auth view
-        if (!App.state.user) {
-            AuthView.render(
-                contentArea,
-                App.state,
-                (userData) => {
-                    App.state.user = userData;
-                    App.state.currentView = 'fleet';
-                    App.render();
-                },
-                App.showToast
-            );
-            return;
-        }
-
-        // User is logged in: build the layout wrapper inside <main id="content-area">
-        // It includes a navigation header bar and the active tab panel.
-        contentArea.innerHTML = `
-            <header class="to-card" style="border-radius: 0 0 12px 12px; margin-bottom: 2rem; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark);">
-                <div style="display: flex; align-items: center; gap: 2rem;">
-                    <div style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        TransitOps
-                    </div>
-                    <nav style="display: flex; gap: 0.5rem;">
-                        <button id="nav-fleet-tab" class="to-btn ${App.state.currentView === 'fleet' ? 'to-btn-primary' : 'to-btn-secondary'}" style="padding: 0.5rem 1rem;">
-                            Fleet Registry
-                        </button>
-                        <button id="nav-driver-tab" class="to-btn ${App.state.currentView === 'driver' ? 'to-btn-primary' : 'to-btn-secondary'}" style="padding: 0.5rem 1rem;">
-                            Driver Profiles
-                        </button>
-                    </nav>
-                </div>
+            // --- Render Chart ---
+            const ctx = document.getElementById('roiChart');
+            if (ctx) {
+                if (App.state.roiChartInstance) {
+                    App.state.roiChartInstance.destroy();
+                }
                 
-                <div style="display: flex; align-items: center; gap: 1.25rem;">
-                    <div style="text-align: right; font-size: 0.85rem;">
-                        <span style="color: #9ca3af;">Signed in as </span>
-                        <strong style="color: #ffffff;">${App.state.user.email}</strong>
-                    </div>
+                const labels = roiList.map(item => item.registrationNumber);
+                const revenues = roiList.map(item => item.revenue);
+                const costs = roiList.map(item => item.totalOperationalCost);
+                const rois = roiList.map(item => item.roi);
+                
+                App.state.roiChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Revenue ($)',
+                                data: revenues,
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Operational Cost ($)',
+                                data: costs,
+                                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                                borderColor: 'rgba(239, 68, 68, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'ROI (%)',
+                                data: rois,
+                                type: 'line',
+                                fill: false,
+                                borderColor: 'rgba(16, 185, 129, 1)',
+                                tension: 0.1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'Amount ($)', color: '#94a3b8' },
+                                ticks: { color: '#94a3b8' },
+                                grid: { color: '#334155' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: 'ROI (%)', color: '#94a3b8' },
+                                ticks: { color: '#94a3b8' },
+                                grid: { drawOnChartArea: false }
+                            },
+                            x: {
+                                ticks: { color: '#94a3b8' },
+                                grid: { color: '#334155' }
+                            }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#f8fafc' } }
+                        }
+                    }
+                });
+            }
 
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label for="header-role-swap" style="font-size: 0.75rem; color: #9ca3af; font-weight: 600; text-transform: uppercase;">Role:</label>
-                        <select id="header-role-swap" class="to-select" style="padding: 0.35rem 1.75rem 0.35rem 0.75rem; font-size: 0.8rem; width: auto; background-color: var(--bg-card);">
-                            <option value="Fleet Manager" ${App.state.user.role === 'Fleet Manager' ? 'selected' : ''}>Fleet Manager</option>
-                            <option value="Driver" ${App.state.user.role === 'Driver' ? 'selected' : ''}>Driver</option>
-                            <option value="Safety Officer" ${App.state.user.role === 'Safety Officer' ? 'selected' : ''}>Safety Officer</option>
-                            <option value="Financial Analyst" ${App.state.user.role === 'Financial Analyst' ? 'selected' : ''}>Financial Analyst</option>
-                        </select>
-                    </div>
+        } catch (err) {
+            console.error("Access issue in Analytics view:", err);
+        }
+    },
 
-                    <button id="header-logout" class="to-btn to-btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
-                        Sign Out
-                    </button>
-                </div>
-            </header>
+    exportRoiCsv: async () => {
+        try {
+            const res = await fetch("/api/analytics/vehicle-roi");
+            if (!res.ok) throw new Error("Failed to load ROI report");
+            const roiList = await res.json();
+            
+            if (roiList.length === 0) {
+                alert("No data to export");
+                return;
+            }
+            
+            // Format CSV
+            const headers = Object.keys(roiList[0]).join(",");
+            const rows = roiList.map(item => Object.values(item).join(","));
+            const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rows.join("\n");
+            
+            // Trigger download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "roi_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error("Failed to export ROI CSV:", err);
+            alert("Failed to export ROI CSV.");
+        }
+    },
 
-            <div id="view-mount-point"></div>
-        `;
+    // Setup Forms
+    setupForms: () => {
+        const btnRefreshKpi = document.getElementById("btn-refresh-kpi");
+        if (btnRefreshKpi) {
+            btnRefreshKpi.addEventListener("click", () => {
+                App.loadKpis();
+            });
+        }
+        
+        const btnExportRoi = document.getElementById("btn-export-roi");
+        if (btnExportRoi) {
+            btnExportRoi.addEventListener("click", () => {
+                App.exportRoiCsv();
+            });
+        }
+        
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById("theme-toggle");
+        if (themeToggle) {
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "light") {
+                document.documentElement.setAttribute("data-theme", "light");
+                themeToggle.textContent = "☀️";
+            }
+            
+            themeToggle.addEventListener("click", () => {
+                const currentTheme = document.documentElement.getAttribute("data-theme");
+                if (currentTheme === "light") {
+                    document.documentElement.removeAttribute("data-theme");
+                    localStorage.setItem("theme", "dark");
+                    themeToggle.textContent = "🌙";
+                } else {
+                    document.documentElement.setAttribute("data-theme", "light");
+                    localStorage.setItem("theme", "light");
+                    themeToggle.textContent = "☀️";
+                }
+            });
+        }
+        
+        const btnExportPdf = document.getElementById("btn-export-pdf");
+        if (btnExportPdf) {
+            btnExportPdf.addEventListener("click", () => {
+                const element = document.getElementById("view-analytics");
+                const opt = {
+                    margin:       0.5,
+                    filename:     'financial_analytics.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+                
+                // Hide buttons during export
+                const buttons = document.querySelectorAll('#btn-export-pdf, #btn-export-roi');
+                buttons.forEach(b => b.style.display = 'none');
+                
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Restore buttons
+                    buttons.forEach(b => b.style.display = 'inline-block');
+                });
+            });
+        }
 
-        // Bind header navigation handlers
-        const fleetTab = contentArea.querySelector('#nav-fleet-tab');
-        const driverTab = contentArea.querySelector('#nav-driver-tab');
-        const logoutBtn = contentArea.querySelector('#header-logout');
-        const roleSelector = contentArea.querySelector('#header-role-swap');
-        const mountPoint = contentArea.querySelector('#view-mount-point');
+        // Maintenance Form
+        const maintForm = document.getElementById("maintenance-form");
+        if (maintForm) {
+            maintForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                
+                const vehicleId = document.getElementById("maint-vehicle").value;
+                const description = document.getElementById("maint-description").value;
+                const cost = parseFloat(document.getElementById("maint-cost").value);
+                const date = document.getElementById("maint-date").value;
 
-        fleetTab.addEventListener('click', () => {
-            App.state.currentView = 'fleet';
-            App.render();
-        });
+                try {
+                    const res = await fetch("/api/maintenance", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            vehicle: { id: parseInt(vehicleId) },
+                            description: description,
+                            cost: cost,
+                            logDate: date,
+                            status: "Open"
+                        })
+                    });
+                    if (!res.ok) throw new Error("Failed to submit maintenance");
 
-        driverTab.addEventListener('click', () => {
-            App.state.currentView = 'driver';
-            App.render();
-        });
+                    maintForm.reset();
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById("maint-date").value = today;
 
-        logoutBtn.addEventListener('click', () => {
-            App.handleLogout();
-        });
+                    await App.loadVehiclesDropdowns();
+                    await App.loadMaintenanceLedger();
+                } catch (err) {
+                    console.error("Failed to submit maintenance log:", err);
+                    alert("Error submitting log.");
+                }
+            });
+        }
 
-        roleSelector.addEventListener('change', (e) => {
-            App.handleQuickSwap(e.target.value);
-        });
+        // Fuel Form
+        const fuelForm = document.getElementById("fuel-form");
+        if (fuelForm) {
+            fuelForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                
+                const vehicleId = document.getElementById("fuel-vehicle").value;
+                const liters = parseFloat(document.getElementById("fuel-liters").value);
+                const cost = parseFloat(document.getElementById("fuel-cost").value);
+                const date = document.getElementById("fuel-date").value;
 
-        // Render active panel in the mount point
-        if (App.state.currentView === 'fleet') {
-            FleetView.render(mountPoint, App.state, App.showToast);
-        } else if (App.state.currentView === 'driver') {
-            DriverView.render(mountPoint, App.state, App.showToast);
+                try {
+                    const res = await fetch("/api/fuel-logs", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            vehicle: { id: parseInt(vehicleId) },
+                            liters: liters,
+                            cost: cost,
+                            logDate: date
+                        })
+                    });
+                    if (!res.ok) throw new Error("Failed to log fuel");
+
+                    fuelForm.reset();
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById("fuel-date").value = today;
+
+                    await App.loadLedgerData();
+                } catch (err) {
+                    console.error("Failed to submit fuel log:", err);
+                    alert("Error logging fuel.");
+                }
+            });
+        }
+
+        // Expense Form
+        const expForm = document.getElementById("expense-form");
+        if (expForm) {
+            expForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                
+                const vehicleId = document.getElementById("exp-vehicle").value;
+                const type = document.getElementById("exp-type").value;
+                const amount = parseFloat(document.getElementById("exp-amount").value);
+                const date = document.getElementById("exp-date").value;
+
+                try {
+                    const res = await fetch("/api/expenses", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            vehicle: { id: parseInt(vehicleId) },
+                            type: type,
+                            amount: amount,
+                            date: date
+                        })
+                    });
+                    if (!res.ok) throw new Error("Failed to log expense");
+
+                    expForm.reset();
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById("exp-date").value = today;
+
+                    await App.loadLedgerData();
+                } catch (err) {
+                    console.error("Failed to submit expense log:", err);
+                    alert("Failed to log expense.");
+                }
+            });
+        }
+
+        // Form Switcher Tabs (Fuel vs Expense Forms)
+        const formTabFuel = document.getElementById("form-tab-fuel");
+        const formTabExpense = document.getElementById("form-tab-expense");
+        
+        if (formTabFuel && formTabExpense) {
+            formTabFuel.addEventListener("click", () => {
+                formTabFuel.classList.add("active");
+                formTabExpense.classList.remove("active");
+                
+                fuelForm.classList.remove("hidden");
+                if (expForm) expForm.classList.add("hidden");
+            });
+
+            formTabExpense.addEventListener("click", () => {
+                formTabExpense.classList.add("active");
+                formTabFuel.classList.remove("active");
+                
+                if (expForm) expForm.classList.remove("hidden");
+                fuelForm.classList.add("hidden");
+            });
+        }
+
+        // Ledger Table Switcher (Fuel vs Expense Tables)
+        const tabBtnFuel = document.getElementById("tab-btn-fuel");
+        const tabBtnExpense = document.getElementById("tab-btn-expense");
+        const tabContentFuel = document.getElementById("tab-content-fuel");
+        const tabContentExpense = document.getElementById("tab-content-expense");
+
+        if (tabBtnFuel && tabBtnExpense && tabContentFuel && tabContentExpense) {
+            tabBtnFuel.addEventListener("click", () => {
+                tabBtnFuel.classList.add("active");
+                tabBtnExpense.classList.remove("active");
+                
+                tabContentFuel.classList.remove("hidden");
+                tabContentExpense.classList.add("hidden");
+            });
+
+            tabBtnExpense.addEventListener("click", () => {
+                tabBtnExpense.classList.add("active");
+                tabBtnFuel.classList.remove("active");
+                
+                tabContentExpense.classList.remove("hidden");
+                tabContentFuel.classList.add("hidden");
+            });
         }
     }
 };
 
 // Initialize App when DOM is loaded
 window.addEventListener('DOMContentLoaded', () => {
-    // Only init SPA if we are on the fleet page
-    if (document.getElementById('content-area')) {
+    // Only init if we are on the main workspace page (fleet.html or financial.html)
+    if (document.querySelector('.workspace')) {
         App.init();
     }
 });
 
 export default App;
-
 
 // ==============================================
 // TRIP DISPATCHER LOGIC (from origin/main)
@@ -250,10 +868,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const capacityWarning = document.getElementById('capacityWarning');
     const dispatchForm = document.getElementById('dispatchForm');
 
-    // Only run if we are on the dispatch page
+    // Only run if we are on the dispatch page (dispatcher.html)
     if (!vehicleSelect) return;
 
-    // Fetch available assets on page load
     fetchAssets();
 
     async function fetchAssets() {
@@ -265,9 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateVehicles(data.vehicles || []);
             populateDrivers(data.drivers || []);
             
-            // Re-validate in case of re-fetches
             validateCapacity();
-
         } catch (error) {
             console.error('Error fetching assets:', error);
             vehicleSelect.innerHTML = '<option disabled selected>Error loading vehicles</option>';
@@ -280,7 +895,6 @@ document.addEventListener('DOMContentLoaded', () => {
         vehicles.forEach(v => {
             const option = document.createElement('option');
             option.value = v.id;
-            // Store capacity in a data attribute for real-time DOM validation
             option.dataset.capacity = v.maxLoadCapacity;
             option.textContent = `${v.registrationNumber} - ${v.model} (Max Load: ${v.maxLoadCapacity}kg)`;
             vehicleSelect.appendChild(option);
@@ -297,8 +911,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Real-Time Capacity Validation ---
-    
     cargoWeightInput.addEventListener('input', validateCapacity);
     vehicleSelect.addEventListener('change', validateCapacity);
 
@@ -306,7 +918,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const weight = parseInt(cargoWeightInput.value, 10);
         const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
         
-        // Only validate if both are present
         if (!selectedOption || !selectedOption.dataset.capacity || isNaN(weight)) {
             capacityWarning.classList.add('hidden');
             dispatchBtn.disabled = !checkFormValidity(); 
@@ -316,18 +927,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxCapacity = parseInt(selectedOption.dataset.capacity, 10);
 
         if (weight > maxCapacity) {
-            // Show warning and block submission
             capacityWarning.querySelector('span').textContent = `Warning: Cargo (${weight}kg) exceeds vehicle capacity (${maxCapacity}kg)!`;
             capacityWarning.classList.remove('hidden');
             dispatchBtn.disabled = true;
         } else {
-            // Hide warning, enable if form is valid
             capacityWarning.classList.add('hidden');
             dispatchBtn.disabled = !checkFormValidity();
         }
     }
     
-    // Basic helper to check if HTML5 required fields are met
     function checkFormValidity() {
         return document.getElementById('source').value.trim() !== '' &&
                document.getElementById('destination').value.trim() !== '' &&
@@ -336,13 +944,13 @@ document.addEventListener('DOMContentLoaded', () => {
                cargoWeightInput.value !== '';
     }
     
-    // Re-check validity on other inputs too to toggle button dynamically
     ['source', 'destination', 'vehicleSelect', 'driverSelect'].forEach(id => {
-        document.getElementById(id).addEventListener('input', validateCapacity);
-        document.getElementById(id).addEventListener('change', validateCapacity);
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', validateCapacity);
+            el.addEventListener('change', validateCapacity);
+        }
     });
-
-    // --- Dispatch Logic ---
 
     dispatchForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -361,7 +969,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Step 1: Create Draft
             let res = await fetch('/api/trips', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -371,7 +978,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error('Failed to create Draft Trip');
             const draftTrip = await res.json();
             
-            // Animate Tracker: Draft -> Dispatched
             const stepDraft = document.getElementById('step-draft');
             const stepDispatched = document.getElementById('step-dispatched');
             
@@ -379,35 +985,28 @@ document.addEventListener('DOMContentLoaded', () => {
             stepDraft.classList.remove('active');
             stepDispatched.classList.add('active');
 
-            // Step 2: Transition to Dispatched
             res = await fetch(`/api/trips/${draftTrip.id}/status?status=Dispatched`, {
                 method: 'PUT'
             });
 
             if (!res.ok) {
-                // If backend validation blocked it (e.g., MySQL triggers or Service validation)
                 const errorText = await res.text();
                 throw new Error(errorText || 'Failed to dispatch trip');
             }
 
-            // Success Animation
             dispatchBtn.textContent = 'Trip Dispatched!';
             dispatchBtn.style.background = 'var(--success-color)';
-            dispatchBtn.style.boxShadow = '0 10px 25px -5px rgba(16, 185, 129, 0.5)';
             
-            // Reset form and reload assets after 3 seconds for continuous dispatching
             setTimeout(() => {
                 fetchAssets();
                 dispatchForm.reset();
                 dispatchBtn.textContent = 'Dispatch Trip';
                 dispatchBtn.style.background = '';
-                dispatchBtn.style.boxShadow = '';
                 
-                // Reset Tracker
                 stepDraft.classList.add('active');
                 stepDraft.classList.remove('completed');
                 stepDispatched.classList.remove('active');
-                dispatchBtn.disabled = true; // Wait for input again
+                dispatchBtn.disabled = true;
             }, 3000);
 
         } catch (error) {
