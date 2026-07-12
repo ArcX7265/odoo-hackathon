@@ -155,10 +155,20 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .licenseExpiryDate(LocalDate.of(2026, 11, 20))
                 .contactNumber("555-0177")
                 .safetyScore(75)
-                .status("Off Duty")
+                .status("Available")
                 .build();
 
-        driverRepository.saveAll(List.of(d1, d2, d3));
+        Driver d4 = Driver.builder()
+                .name("Alice Williams")
+                .licenseNumber("DL-448201")
+                .licenseCategory("Class B")
+                .licenseExpiryDate(LocalDate.of(2027, 8, 12))
+                .contactNumber("555-0199")
+                .safetyScore(92)
+                .status("Available")
+                .build();
+
+        driverRepository.saveAll(List.of(d1, d2, d3, d4));
 
         // 4. Seed Trips
         Trip t1 = Trip.builder()

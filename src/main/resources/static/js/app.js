@@ -913,20 +913,17 @@ const App = {
     }
 };
 
-// Initialize App when DOM is loaded
-window.addEventListener('DOMContentLoaded', () => {
-    // Only init if we are on the main workspace page (fleet.html or financial.html)
-    if (document.querySelector('.workspace')) {
-        App.init();
-    }
-});
+// Initialize App
+if (document.querySelector('.app-container')) {
+    App.init();
+}
 
 export default App;
 
 // ==============================================
 // TRIP DISPATCHER LOGIC (from origin/main)
 // ==============================================
-document.addEventListener('DOMContentLoaded', () => {
+(() => {
     const vehicleSelect = document.getElementById('vehicleSelect');
     const driverSelect = document.getElementById('driverSelect');
     const cargoWeightInput = document.getElementById('cargoWeight');
@@ -1082,4 +1079,4 @@ document.addEventListener('DOMContentLoaded', () => {
             dispatchBtn.textContent = 'Dispatch Trip';
         }
     });
-});
+})();
