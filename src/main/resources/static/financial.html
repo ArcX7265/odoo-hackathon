@@ -15,6 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -73,6 +74,24 @@
             <div class="content-area">
                 <!-- View 1: Dashboard View -->
                 <section id="view-dashboard" class="view-section active">
+                    <!-- Dashboard Filters -->
+                    <div class="dashboard-filters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center;">
+                        <select id="filter-vehicle-type" class="form-input" style="width: auto;">
+                            <option value="">All Vehicle Types</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Van">Van</option>
+                            <option value="Bus">Bus</option>
+                        </select>
+                        <select id="filter-vehicle-status" class="form-input" style="width: auto;">
+                            <option value="">All Statuses</option>
+                            <option value="Available">Available</option>
+                            <option value="On Trip">On Trip</option>
+                            <option value="In Shop">In Shop</option>
+                            <option value="Retired">Retired</option>
+                        </select>
+                        <button id="btn-refresh-kpi" class="btn btn-primary btn-sm">Refresh Dashboard</button>
+                    </div>
+
                     <!-- KPI Cards Grid -->
                     <div class="kpi-grid">
                         <div class="kpi-card blue-gradient-border">
@@ -118,6 +137,25 @@
                             </div>
                             <div class="kpi-value" id="kpi-fleet-utilization">- %</div>
                             <div class="kpi-footer">On-trip vs active fleet</div>
+                        </div>
+                        
+                        <!-- New KPIs for ops-analytics -->
+                        <div class="kpi-card grey-gradient-border" style="border-top: 4px solid #6b7280;">
+                            <div class="kpi-header">
+                                <span class="kpi-title">Pending Trips</span>
+                                <span class="kpi-icon">📝</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-pending-trips">-</div>
+                            <div class="kpi-footer">Trips in Draft status</div>
+                        </div>
+
+                        <div class="kpi-card cyan-gradient-border" style="border-top: 4px solid #06b6d4;">
+                            <div class="kpi-header">
+                                <span class="kpi-title">Drivers On Duty</span>
+                                <span class="kpi-icon">👷</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-drivers-on-duty">-</div>
+                            <div class="kpi-footer">Available or On Trip</div>
                         </div>
                     </div>
 
@@ -347,8 +385,16 @@
                     </div>
 
                     <div class="panel">
-                        <h2>Vehicle Financial Performance (ROI & Operational Outlays)</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h2 style="margin: 0;">Vehicle Financial Performance (ROI & Operational Outlays)</h2>
+                            <button id="btn-export-roi" class="btn btn-primary" style="margin: 0;">Export ROI CSV</button>
+                        </div>
                         <p class="panel-desc">Calculated Vehicle ROI based on: Revenue (Completed trips * $3.00/mile) vs Operational Cost (Maintenance + Fuel) against vehicle Acquisition Cost.</p>
+                        
+                        <!-- Financial Graph Container -->
+                        <div class="chart-container" style="width: 100%; max-width: 900px; margin: 2rem auto; padding: 1rem; background-color: var(--surface-color); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <canvas id="roiChart"></canvas>
+                        </div>
                         
                         <div class="analytics-grid" id="analytics-grid-body">
                             <!-- Cards will be populated here dynamically -->

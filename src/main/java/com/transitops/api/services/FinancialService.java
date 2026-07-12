@@ -19,21 +19,32 @@ public class FinancialService {
     private final FuelLogRepository fuelLogRepository;
     private final ExpenseRepository expenseRepository;
     private final TripRepository tripRepository;
+    private final DriverRepository driverRepository;
 
     public FinancialService(VehicleRepository vehicleRepository,
                             MaintenanceLogRepository maintenanceLogRepository,
                             FuelLogRepository fuelLogRepository,
                             ExpenseRepository expenseRepository,
-                            TripRepository tripRepository) {
+                            TripRepository tripRepository,
+                            DriverRepository driverRepository) {
         this.vehicleRepository = vehicleRepository;
         this.maintenanceLogRepository = maintenanceLogRepository;
         this.fuelLogRepository = fuelLogRepository;
         this.expenseRepository = expenseRepository;
         this.tripRepository = tripRepository;
+        this.driverRepository = driverRepository;
     }
 
-    public Map<String, Object> getKpiSummary() {
+    public Map<String, Object> getKpiSummary(String vehicleType, String status) {
         List<Vehicle> vehicles = vehicleRepository.findAll();
+
+        if (vehicleType != null && !vehicleType.isEmpty()) {
+            vehicles = vehicles.stream().filter(v -> vehicleType.equalsIgnoreCase(v.getType())).toList();
+        }
+        if (status != null && !status.isEmpty()) {
+            vehicles = vehicles.stream().filter(v -> status.equalsIgnoreCase(v.getStatus())).toList();
+        }
+
         long activeVehicles = vehicles.stream().filter(v -> !"Retired".equalsIgnoreCase(v.getStatus())).count();
         long availableVehicles = vehicles.stream().filter(v -> "Available".equalsIgnoreCase(v.getStatus())).count();
         long inMaintenance = vehicles.stream().filter(v -> "In Shop".equalsIgnoreCase(v.getStatus())).count();
@@ -41,6 +52,14 @@ public class FinancialService {
 
         long activeTrips = tripRepository.findAll().stream()
                 .filter(t -> "Dispatched".equalsIgnoreCase(t.getStatus()))
+                .count();
+
+        long pendingTrips = tripRepository.findAll().stream()
+                .filter(t -> "Draft".equalsIgnoreCase(t.getStatus()))
+                .count();
+
+        long driversOnDuty = driverRepository.findAll().stream()
+                .filter(d -> "Available".equalsIgnoreCase(d.getStatus()) || "On Trip".equalsIgnoreCase(d.getStatus()))
                 .count();
 
         double fleetUtilization = activeVehicles == 0 ? 0.0 : ((double) onTrip / activeVehicles) * 100.0;
@@ -53,6 +72,8 @@ public class FinancialService {
         kpis.put("vehiclesInMaintenance", inMaintenance);
         kpis.put("activeTrips", activeTrips);
         kpis.put("fleetUtilization", fleetUtilization);
+        kpis.put("pendingTrips", pendingTrips);
+        kpis.put("driversOnDuty", driversOnDuty);
 
         return kpis;
     }
