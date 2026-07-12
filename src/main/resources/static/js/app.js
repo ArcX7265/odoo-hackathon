@@ -938,7 +938,7 @@ const App = {
 // Initialize App when DOM is loaded
 window.addEventListener('DOMContentLoaded', () => {
     // Only init if we are on the main workspace page (fleet.html or financial.html)
-    if (document.querySelector('.workspace')) {
+    if (document.querySelector('.app-container')) {
         App.init();
     }
 });
