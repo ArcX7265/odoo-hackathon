@@ -18,9 +18,12 @@
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/models/Vehicle.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/models/TripStatus.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/models/MaintenanceLog.java
+/Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/controllers/DriverController.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/controllers/ExpenseController.java
+/Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/config/RoleBasedAuthenticationSuccessHandler.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/repositories/FuelLogRepository.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/models/Trip.java
+/Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/controllers/AuthController.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/repositories/ExpenseRepository.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/services/CustomUserDetailsService.java
 /Users/nikeetkumar/Desktop/odoo-hackathon/src/main/java/com/transitops/api/TransitopsApiApplication.java

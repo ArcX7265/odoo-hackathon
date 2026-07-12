@@ -52,11 +52,13 @@ public class MaintenanceService {
         log.setStatus("Closed");
         MaintenanceLog savedLog = maintenanceLogRepository.save(log);
 
-        // Automation: Transition vehicle status back to 'Available' upon resolution of maintenance.
+        // Automation: Transition vehicle status back to 'Available' upon resolution of maintenance, unless retired.
         if (savedLog.getVehicle() != null) {
             Vehicle vehicle = savedLog.getVehicle();
-            vehicle.setStatus("Available");
-            vehicleRepository.save(vehicle);
+            if (!"Retired".equalsIgnoreCase(vehicle.getStatus())) {
+                vehicle.setStatus("Available");
+                vehicleRepository.save(vehicle);
+            }
         }
 
         return savedLog;

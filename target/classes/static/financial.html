@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitOps - Ops & Analytics</title>
+    <title>TransitOps - Financial Analytics</title>
     <link rel="stylesheet" href="app.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
                     <span class="logo-icon">⛟</span>
                     <span class="logo-text">Transit<span class="highlight">Ops</span></span>
                 </div>
-                <div class="tagline">Ops & Analytics</div>
+                <div class="tagline">Financial Analytics</div>
             </div>
             
             <nav class="nav-menu">
@@ -53,14 +53,12 @@
                     <p class="header-subtitle">Real-time operations control and cost analysis</p>
                 </div>
 
-                <!-- User Role Switcher -->
-                <div class="role-switcher-container">
-                    <label for="role-select" class="role-label">Logged in as:</label>
-                    <select id="role-select" class="role-select">
-                        <option value="manager" selected>Fleet Manager (manager@transitops.com)</option>
-                        <option value="analyst">Financial Analyst (analyst@transitops.com)</option>
-                        <option value="driver">Driver (driver@transitops.com)</option>
-                    </select>
+                <!-- User Info & Logout -->
+                <div class="role-switcher-container" style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="color: var(--text-muted);">Financial Analyst</span>
+                    <form action="/logout" method="POST" style="margin: 0;">
+                        <button type="submit" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Logout</button>
+                    </form>
                 </div>
             </header>
 

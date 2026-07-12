@@ -31,6 +31,9 @@
                 <button class="nav-item" data-view="ledgers">
                     <span class="nav-icon">💵</span> Fuel & Expenses
                 </button>
+                <button class="nav-item" data-view="vehicles">
+                    <span class="nav-icon">🚛</span> Master Vehicles
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -346,6 +349,101 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- View: Master Vehicles -->
+                <section id="view-vehicles" class="view-section">
+                    <div class="panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2>Master Vehicle List</h2>
+                                <p class="panel-desc">Manage the entire fleet inventory and asset details.</p>
+                            </div>
+                            <button id="btn-add-vehicle" class="btn btn-primary">
+                                <span class="nav-icon">➕</span> Add Vehicle
+                            </button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table class="data-table" id="master-vehicles-table">
+                                <thead>
+                                    <tr>
+                                        <th>Registration</th>
+                                        <th>Model</th>
+                                        <th>Type</th>
+                                        <th>Max Load (kg)</th>
+                                        <th>Odometer</th>
+                                        <th>Acquisition Cost ($)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="7" class="text-center">Loading master vehicle list...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Add Vehicle Modal (Hidden by default) -->
+                <div id="add-vehicle-modal" class="modal-overlay hidden">
+                    <div class="modal-content glass-panel" style="max-width: 600px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h2>Add New Vehicle</h2>
+                            <button class="close-modal-btn" id="btn-close-vehicle-modal" style="background: transparent; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+                        </div>
+                        
+                        <form id="add-vehicle-form">
+                            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div class="form-group">
+                                    <label>Registration Number *</label>
+                                    <input type="text" id="veh-reg" required placeholder="e.g. TX-4521">
+                                </div>
+                                <div class="form-group">
+                                    <label>Model / Name</label>
+                                    <input type="text" id="veh-model" placeholder="e.g. Ford Transit">
+                                </div>
+                                <div class="form-group">
+                                    <label>Type</label>
+                                    <select id="veh-type" required style="width: 100%; padding: 0.8rem; background: var(--bg-darker); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px;">
+                                        <option value="Truck">Truck</option>
+                                        <option value="Van">Van</option>
+                                        <option value="Bus">Bus</option>
+                                        <option value="Car">Car</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select id="veh-status" required style="width: 100%; padding: 0.8rem; background: var(--bg-darker); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px;">
+                                        <option value="Available">Available</option>
+                                        <option value="On Trip">On Trip</option>
+                                        <option value="In Shop">In Shop</option>
+                                        <option value="Retired">Retired</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Load Capacity (kg)</label>
+                                    <input type="number" id="veh-load" placeholder="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Odometer (miles)</label>
+                                    <input type="number" id="veh-odo" placeholder="0">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label>Acquisition Cost ($)</label>
+                                    <input type="number" step="0.01" id="veh-cost" placeholder="45000.00">
+                                </div>
+                            </div>
+                            
+                            <div id="veh-error-msg" style="color: var(--danger-color); margin-bottom: 1rem; display: none;"></div>
+                            
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Vehicle</button>
+                        </form>
+                    </div>
+                </div>
+                
             </div>
         </main>
     </div>
