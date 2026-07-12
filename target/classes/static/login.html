@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitOps - Login</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --error-color: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.1), transparent 40%);
+        }
+
+        .login-container {
+            background-color: var(--surface-color);
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-text {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .logo-text span {
+            color: var(--primary);
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .btn-login:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+        }
+
+        /* Show error message if URL has ?error */
+        .show-error .error-message {
+            display: block;
+        }
+
+        .test-credentials {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .test-credentials p {
+            margin: 0.25rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="loginWrapper">
+        <div class="logo-container">
+            <div class="logo-text">
+                <span class="logo-icon">🚚</span> Transit<span>Ops</span>
+            </div>
+        </div>
+
+        <div class="error-message">
+            Invalid credentials or incorrect role selected.
+        </div>
+
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label for="username">Email Address</label>
+                <input type="email" id="username" name="username" class="form-control" placeholder="Enter your email" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" class="form-control" required>
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="ROLE_FLEET_MANAGER">Fleet Manager</option>
+                    <option value="ROLE_FINANCIAL_ANALYST">Financial Analyst</option>
+                    <option value="ROLE_DISPATCHER">Dispatcher</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-login">Sign In</button>
+        </form>
+
+        <div class="test-credentials">
+            <strong>Mock Credentials (password: password)</strong>
+            <p>manager@transitops.com (Fleet Manager)</p>
+            <p>analyst@transitops.com (Financial Analyst)</p>
+            <p>dispatcher@transitops.com (Dispatcher)</p>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            document.getElementById('loginWrapper').classList.add('show-error');
+        }
+    </script>
+</body>
+</html>
