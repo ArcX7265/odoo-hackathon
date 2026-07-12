@@ -1,15 +1,19 @@
 package com.transitops.api.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -18,6 +22,5 @@ public class User {
     private String passwordHash;
 
     @Column(nullable = false)
-    @Convert(converter = RoleConverter.class)
-    private Role role;
+    private String role; // 'Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst'
 }

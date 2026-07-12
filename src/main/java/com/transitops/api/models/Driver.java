@@ -1,16 +1,20 @@
 package com.transitops.api.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "drivers")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Driver {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -31,6 +35,5 @@ public class Driver {
     private Integer safetyScore;
 
     @Column(nullable = false)
-    @Convert(converter = DriverStatusConverter.class)
-    private DriverStatus status = DriverStatus.AVAILABLE;
+    private String status = "Available"; // 'Available', 'On Trip', 'Off Duty', 'Suspended'
 }

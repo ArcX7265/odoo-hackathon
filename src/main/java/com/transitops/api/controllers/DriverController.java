@@ -31,7 +31,7 @@ public class DriverController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getDriverById(@PathVariable Long id) {
+    public ResponseEntity<?> getDriverById(@PathVariable Integer id) {
         Optional<Driver> driverOpt = driverRepository.findById(id);
         if (driverOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();
@@ -65,7 +65,7 @@ public class DriverController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER', 'SAFETY_OFFICER')")
-    public ResponseEntity<?> updateDriver(@PathVariable Long id, @RequestBody Driver driverData) {
+    public ResponseEntity<?> updateDriver(@PathVariable Integer id, @RequestBody Driver driverData) {
         Optional<Driver> driverOpt = driverRepository.findById(id);
         if (driverOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();
@@ -112,7 +112,7 @@ public class DriverController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER', 'SAFETY_OFFICER')")
-    public ResponseEntity<?> deleteDriver(@PathVariable Long id) {
+    public ResponseEntity<?> deleteDriver(@PathVariable Integer id) {
         Optional<Driver> driverOpt = driverRepository.findById(id);
         if (driverOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();

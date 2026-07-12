@@ -52,7 +52,7 @@ public class AuthController {
 
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("email", user.getEmail());
-            responseData.put("role", user.getRole().getValue());
+            responseData.put("role", user.getRole());
             responseData.put("message", "Login successful");
 
             return ResponseEntity.ok(responseData);
@@ -86,7 +86,7 @@ public class AuthController {
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("email", user.getEmail());
-        responseData.put("role", user.getRole().getValue());
+        responseData.put("role", user.getRole());
 
         return ResponseEntity.ok(responseData);
     }

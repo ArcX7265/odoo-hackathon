@@ -31,7 +31,7 @@ public class VehicleController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getVehicleById(@PathVariable Long id) {
+    public ResponseEntity<?> getVehicleById(@PathVariable Integer id) {
         Optional<Vehicle> vehicleOpt = vehicleRepository.findById(id);
         if (vehicleOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();
@@ -65,7 +65,7 @@ public class VehicleController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('FLEET_MANAGER')")
-    public ResponseEntity<?> updateVehicle(@PathVariable Long id, @RequestBody Vehicle vehicleData) {
+    public ResponseEntity<?> updateVehicle(@PathVariable Integer id, @RequestBody Vehicle vehicleData) {
         Optional<Vehicle> vehicleOpt = vehicleRepository.findById(id);
         if (vehicleOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();
@@ -112,7 +112,7 @@ public class VehicleController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('FLEET_MANAGER')")
-    public ResponseEntity<?> deleteVehicle(@PathVariable Long id) {
+    public ResponseEntity<?> deleteVehicle(@PathVariable Integer id) {
         Optional<Vehicle> vehicleOpt = vehicleRepository.findById(id);
         if (vehicleOpt.isEmpty()) {
             Map<String, String> error = new HashMap<>();

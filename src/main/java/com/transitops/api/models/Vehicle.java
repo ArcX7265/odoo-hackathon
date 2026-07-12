@@ -1,16 +1,20 @@
 package com.transitops.api.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "vehicles")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "registration_number", nullable = false, unique = true, length = 50)
     private String registrationNumber;
@@ -19,8 +23,7 @@ public class Vehicle {
     private String model;
 
     @Column(nullable = false)
-    @Convert(converter = VehicleTypeConverter.class)
-    private VehicleType type;
+    private String type; // 'Truck', 'Van', 'Bus', 'Car', 'Other'
 
     @Column(name = "max_load_capacity")
     private Integer maxLoadCapacity;
@@ -31,6 +34,5 @@ public class Vehicle {
     private BigDecimal acquisitionCost;
 
     @Column(nullable = false)
-    @Convert(converter = VehicleStatusConverter.class)
-    private VehicleStatus status = VehicleStatus.AVAILABLE;
+    private String status = "Available"; // 'Available', 'On Trip', 'In Shop', 'Retired'
 }
