@@ -43,12 +43,77 @@ public class TripService {
     }
 
     @Transactional
-    public Trip updateTripStatus(Integer id, String newStatus) {
+    public Trip updateTripStatus(Integer id, String newStatus, Integer finalOdometer, java.math.BigDecimal fuelConsumed) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
+        String oldStatus = trip.getStatus();
+
         if ("Dispatched".equals(newStatus)) {
             validateDispatch(trip);
+            
+            // Explicitly sync vehicle status to 'On Trip'
+            if (trip.getVehicle() != null) {
+                Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+                vehicle.setStatus("On Trip");
+                vehicleRepository.save(vehicle);
+            }
+
+            // Explicitly sync driver status to 'On Trip'
+            if (trip.getDriver() != null) {
+                Driver driver = driverRepository.findById(trip.getDriver().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+                driver.setStatus("On Trip");
+                driverRepository.save(driver);
+            }
+        } else if ("Completed".equals(newStatus)) {
+            if (finalOdometer == null || fuelConsumed == null) {
+                throw new IllegalArgumentException("Final odometer and fuel consumed must be entered to complete a trip.");
+            }
+
+            // Set final trip details
+            trip.setFinalOdometer(finalOdometer);
+            trip.setFuelConsumed(fuelConsumed);
+
+            // Revert vehicle status back to 'Available' and update odometer
+            if (trip.getVehicle() != null) {
+                Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+                
+                if (vehicle.getOdometer() != null && finalOdometer < vehicle.getOdometer()) {
+                    throw new IllegalArgumentException("Final odometer (" + finalOdometer + 
+                                                       ") cannot be less than current odometer (" + vehicle.getOdometer() + ").");
+                }
+                
+                vehicle.setStatus("Available");
+                vehicle.setOdometer(finalOdometer);
+                vehicleRepository.save(vehicle);
+            }
+
+            // Revert driver status back to 'Available'
+            if (trip.getDriver() != null) {
+                Driver driver = driverRepository.findById(trip.getDriver().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+                driver.setStatus("Available");
+                driverRepository.save(driver);
+            }
+        } else if ("Cancelled".equals(newStatus)) {
+            // Revert driver and vehicle status back to 'Available' only if cancelled from 'Dispatched' or 'In Progress'
+            if ("Dispatched".equals(oldStatus) || "In Progress".equals(oldStatus)) {
+                if (trip.getVehicle() != null) {
+                    Vehicle vehicle = vehicleRepository.findById(trip.getVehicle().getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+                    vehicle.setStatus("Available");
+                    vehicleRepository.save(vehicle);
+                }
+                if (trip.getDriver() != null) {
+                    Driver driver = driverRepository.findById(trip.getDriver().getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+                    driver.setStatus("Available");
+                    driverRepository.save(driver);
+                }
+            }
         }
 
         trip.setStatus(newStatus);
